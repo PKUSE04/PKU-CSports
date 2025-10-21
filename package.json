@@ -1,0 +1,23 @@
+{
+  "name": "pku-csports",
+  "version": "1.0.0",
+  "description": "\"A cross-platform based on electron for PKU sports event data\"",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PKUSE04/PKU-CSports.git"
+  },
+  "author": "PKUSE04",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/PKUSE04/PKU-CSports/issues"
+  },
+  "homepage": "https://github.com/PKUSE04/PKU-CSports#readme",
+  "devDependencies": {
+    "electron": "^38.2.2"
+  }
+}
