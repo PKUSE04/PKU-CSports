@@ -1,0 +1,79 @@
+{
+	"pages": [ //pages数组中第一项表示应用启动页，参考：https://doc.dcloud.net.cn/uni-app-x/collocation/pagesjson.html
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "首页"
+			}
+		},
+		{
+			"path": "pages/data/data",
+			"style": {
+				"navigationBarTitleText": "数据中心"
+			}
+		},
+		{
+			"path": "pages/forum/forum",
+			"style": {
+				"navigationBarTitleText": "论坛"
+			}
+		},
+		{
+			"path": "pages/tools/tools",
+			"style": {
+				"navigationBarTitleText": "工具箱"
+			}
+		},
+		{
+			"path": "pages/forum/post-edit",
+			"style": {
+				"navigationBarTitleText": "新建博文"
+			}
+		},
+		{
+			"path": "pages/tools/formation-simulator",
+			"style": {
+				"navigationBarTitleText": "阵容模拟器"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "校园体育APP",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8"
+	},
+	"tabBar": {
+		"color": "#999999",
+		"selectedColor": "#409eff",
+		"borderStyle": "black",
+		"backgroundColor": "#ffffff",
+		"list": [
+			{
+				"pagePath": "pages/index/index",
+				"iconPath": "static/home.png",
+				"selectedIconPath": "static/home-active.png",
+				"text": "首页"
+			},
+			{
+				"pagePath": "pages/data/data",
+				"iconPath": "static/data.png",
+				"selectedIconPath": "static/data-active.png",
+				"text": "数据"
+			},
+			{
+				"pagePath": "pages/forum/forum",
+				"iconPath": "static/forum.png",
+				"selectedIconPath": "static/forum-active.png",
+				"text": "论坛"
+			},
+			{
+				"pagePath": "pages/tools/tools",
+				"iconPath": "static/tool.png",
+				"selectedIconPath": "static/tool-active.png",
+				"text": "工具"
+			}
+		]
+	},
+	"uniIdRouter": {}
+}

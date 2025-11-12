@@ -1,0 +1,136 @@
+<template>
+	<view class="container">
+		<!-- 顶部导航 Tab -->
+		<view class="tool-tabs">
+			<view v-for="(tab, index) in toolTabs" :key="index" :class="['tab-item', { 'active': currentToolTab === index }]" @click="switchToolTab(index)">
+				{{ tab }}
+			</view>
+		</view>
+
+		<!-- 战术板/阵容模拟器入口（image_827178.png 的主要内容） -->
+		<view class="tool-section">
+			<view class="tool-title">阵容模拟</view>
+			<view class="tool-box" @click="goToFormationSimulator">
+				<view class="field-placeholder">
+					<!-- 绿色球场背景占位 -->
+					<text>点击进入 阵容模拟器</text>
+				</view>
+				<view class="description">
+					<text>模拟、调整和分享你的球队战术阵容。</text>
+				</view>
+			</view>
+		</view>
+
+		<!-- 其他工具示例 -->
+		<view class="tool-section">
+			<view class="tool-title">更多工具</view>
+			<view class="tool-grid">
+				<view class="grid-item">赛程查询</view>
+				<view class="grid-item">历史战绩</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+export default {
+	data() {
+		return {
+			toolTabs: ['战术板', '赛程查询', '历史战绩'],
+			currentToolTab: 0,
+		}
+	},
+	methods: {
+		switchToolTab(index) {
+			this.currentToolTab = index;
+			console.log(`切换到工具 Tab: ${this.toolTabs[index]}`);
+			// TODO: 根据 Tab 切换内容
+		},
+		goToFormationSimulator() {
+			// 跳转到阵容模拟器页面
+			uni.navigateTo({
+				url: '/pages/tools/formation-simulator'
+			});
+		}
+	}
+}
+</script>
+
+<style>
+.container {
+	background-color: #f8f8f8;
+	min-height: 100vh;
+	padding: 10px;
+}
+/* 顶部导航 Tab 样式 */
+.tool-tabs {
+	display: flex;
+	background-color: #fff;
+	padding: 5px 10px;
+	border-radius: 8px;
+	margin-bottom: 15px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.tool-tabs .tab-item {
+	flex: 1;
+	text-align: center;
+	padding: 8px 0;
+	font-size: 15px;
+	color: #666;
+	border-bottom: 2px solid transparent;
+}
+.tool-tabs .tab-item.active {
+	color: #409eff;
+	font-weight: bold;
+	border-bottom: 2px solid #409eff;
+}
+
+/* 工具区块 */
+.tool-section {
+	margin-bottom: 20px;
+}
+.tool-title {
+	font-size: 16px;
+	font-weight: bold;
+	color: #333;
+	margin-bottom: 10px;
+	padding: 0 5px;
+}
+.tool-box {
+	background-color: #fff;
+	border-radius: 10px;
+	padding: 15px;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+.field-placeholder {
+	background-color: #5cb85c; /* 绿色球场 */
+	height: 150px;
+	border-radius: 8px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	color: #fff;
+	font-weight: bold;
+	margin-bottom: 10px;
+}
+.description {
+	font-size: 13px;
+	color: #666;
+	text-align: center;
+}
+
+.tool-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 10px;
+}
+.grid-item {
+	background-color: #fff;
+	padding: 20px;
+	border-radius: 10px;
+	text-align: center;
+	font-size: 15px;
+	color: #333;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+</style>
