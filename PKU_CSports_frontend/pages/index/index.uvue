@@ -1,0 +1,131 @@
+<template>
+	<view class="container">
+		<!-- 头部今日赛事 -->
+		<view class="match-card">
+			<text class="title">今日赛事</text>
+			<view class="match-info">
+				<!-- 示例：比赛卡片 -->
+				<view class="match-item">
+					<text class="team-name">信科</text>
+					<text class="score">0 - 0</text>
+					<text class="team-name">元培</text>
+				</view>
+				<view class="status-live">直播中 90'</view>
+			</view>
+		</view>
+
+		<!-- 前线快讯 -->
+		<view class="news-section">
+			<text class="section-title">前线快讯</text>
+			<view class="news-item">信科开场反客为主，XX禁区内接球爆射破门</view>
+		</view>
+
+		<!-- 赛后战报 -->
+		<view class="news-section">
+			<text class="section-title">赛后战报</text>
+			<view class="news-item">信科 2-1 击败物院，XX梅开二度当选全场最佳</view>
+		</view>
+
+		<!-- 热门资讯/我的主队入口 -->
+		<view class="more-info" @click="goToMyTeam">
+			<text class="section-title">我的主队（点击跳转）</text>
+			<text class="more-text">查看全部 ></text>
+		</view>
+	</view>
+</template>
+
+<script>
+export default {
+	data() {
+		return {
+			// 页面数据可以在这里定义
+		}
+	},
+	methods: {
+		goToMyTeam() {
+			uni.navigateTo({
+				url: '/pages/team/my-team'
+			});
+		}
+	},
+	// 生命周期钩子
+	onLoad() {
+		console.log('首页加载完成，准备加载今日赛事数据。');
+	}
+}
+</script>
+
+<style>
+.container {
+	padding: 10px;
+	background-color: #f8f8f8;
+	min-height: 100vh;
+}
+.match-card {
+	background-color: #fff;
+	padding: 15px;
+	border-radius: 10px;
+	margin-bottom: 10px;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+.title {
+	font-size: 18px;
+	font-weight: bold;
+	color: #333;
+	margin-bottom: 10px;
+	display: block;
+}
+.match-info {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 10px 0;
+}
+.match-item {
+	display: flex;
+	justify-content: space-around;
+	width: 100%;
+	font-size: 16px;
+	margin-bottom: 5px;
+}
+.status-live {
+	color: #e54d42;
+	font-size: 12px;
+	padding: 3px 8px;
+	border: 1px solid #e54d42;
+	border-radius: 5px;
+}
+
+.news-section {
+	background-color: #fff;
+	padding: 15px;
+	border-radius: 10px;
+	margin-bottom: 10px;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+.section-title {
+	font-size: 16px;
+	font-weight: bold;
+	color: #333;
+	margin-bottom: 10px;
+	display: block;
+}
+.news-item {
+	font-size: 14px;
+	color: #666;
+	padding: 5px 0;
+	border-bottom: 1px dashed #eee;
+}
+.more-info {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 15px;
+	background-color: #fff;
+	border-radius: 10px;
+}
+.more-text {
+	color: #409eff;
+	font-size: 14px;
+}
+</style>
