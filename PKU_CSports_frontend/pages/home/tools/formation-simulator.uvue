@@ -1,0 +1,219 @@
+<template>
+	<view class="container">
+		<!-- 顶部提示 -->
+		<view class="tip">
+			<uni-icons type="info" size="18" color="#409eff"></uni-icons>
+			<text class="tip-text">阵容模拟器（战术板）功能区</text>
+		</view>
+
+		<!-- 球场区域 -->
+		<view class="football-field">
+			<movable-area class="movable-area">
+				<!-- 已上场球员 -->
+				<movable-view
+					v-for="(player, index) in lineup"
+					:key="index"
+					class="player-icon"
+					:x="player.x"
+					:y="player.y"
+					direction="all"
+					@change="onPlayerMove(index, $event)"
+				>
+					{{ player.name }}
+				</movable-view>
+
+				<text v-if="!lineup.length" class="field-text">
+					点击球员仓库中的球员添加上场
+				</text>
+			</movable-area>
+		</view>
+
+		<!-- 球员仓库区 -->
+		<view class="player-warehouse">
+			<text class="warehouse-title">球员仓库</text>
+			<uni-forms :modelValue="formData" ref="form">
+				<uni-forms-item name="playerName" label="添加球员">
+					<input class="input" v-model="formData.playerName" placeholder="输入球员姓名" />
+				</uni-forms-item>
+				<button type="primary" size="mini" @click="addPlayer">添加到仓库</button>
+			</uni-forms>
+			<view class="player-list">
+				<view
+					v-for="(player, index) in players"
+					:key="index"
+					class="player-tag"
+					@click="addToField(player)"
+				>
+					{{ player }}
+				</view>
+			</view>
+		</view>
+
+		<!-- 底部功能按钮 -->
+		<view class="actions">
+			<button class="action-btn" size="mini" type="default" @click="saveLineup">保存阵容</button>
+			<button class="action-btn" size="mini" type="warn" @click="clearField">清空球场</button>
+		</view>
+	</view>
+</template>
+
+<script>
+export default {
+	data() {
+		return {
+			formData: {
+				playerName: ''
+			},
+			players: ['张三', '李四', '王五', '赵六', '钱七'], // 球员仓库
+			lineup: [] // 上场阵容
+		}
+	},
+	methods: {
+		// 添加球员到仓库
+		addPlayer() {
+			if (this.formData.playerName && !this.players.includes(this.formData.playerName)) {
+				this.players.push(this.formData.playerName)
+				this.formData.playerName = ''
+				uni.showToast({ title: '添加成功', icon: 'success' })
+			} else if (this.players.includes(this.formData.playerName)) {
+				uni.showToast({ title: '球员已存在', icon: 'none' })
+			}
+		},
+
+		// 点击球员添加到球场
+		addToField(playerName) {
+			if (this.lineup.find(p => p.name === playerName)) {
+				uni.showToast({ title: '已在球场中', icon: 'none' })
+				return
+			}
+			// 默认位置随机分布在中场区域
+			const randomX = Math.random() * 200 + 80
+			const randomY = Math.random() * 200 + 50
+			this.lineup.push({ name: playerName, x: randomX, y: randomY })
+		},
+
+		// 拖动事件更新球员位置
+		onPlayerMove(index, e) {
+			this.lineup[index].x = e.detail.x
+			this.lineup[index].y = e.detail.y
+		},
+
+		// 保存阵容
+		saveLineup() {
+			uni.setStorageSync('savedLineup', this.lineup)
+			uni.showToast({ title: '阵容已保存', icon: 'success' })
+		},
+
+		// 清空球场
+		clearField() {
+			this.lineup = []
+			uni.showToast({ title: '球场已清空', icon: 'none' })
+		}
+	}
+}
+</script>
+
+<style>
+.container {
+	padding: 10px;
+	background-color: #f8f8f8;
+	min-height: 100vh;
+}
+
+/* 提示 */
+.tip {
+	display: flex;
+	align-items: center;
+	padding: 10px;
+	background-color: #e6f7ff;
+	color: #409eff;
+	border-radius: 8px;
+	margin-bottom: 15px;
+}
+.tip-text {
+	margin-left: 5px;
+	font-size: 14px;
+}
+
+/* 球场 */
+.football-field {
+	background-image: linear-gradient(to bottom, #4caf50, #2e7d32);
+	height: 350px;
+	border-radius: 10px;
+	margin-bottom: 15px;
+	position: relative;
+	overflow: hidden;
+}
+.movable-area {
+	width: 100%;
+	height: 100%;
+	position: relative;
+}
+.player-icon {
+	width: 60rpx;
+	height: 60rpx;
+	background-color: rgba(255, 255, 255, 0.9);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 24rpx;
+	color: #333;
+	font-weight: bold;
+	border: 2rpx solid #eee;
+}
+.field-text {
+	color: #fff;
+	text-align: center;
+	width: 100%;
+	margin-top: 150rpx;
+	font-size: 14px;
+	opacity: 0.9;
+}
+
+/* 仓库 */
+.player-warehouse {
+	background-color: #fff;
+	padding: 15px;
+	border-radius: 10px;
+	margin-bottom: 15px;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+.warehouse-title {
+	font-size: 16px;
+	font-weight: bold;
+	margin-bottom: 10px;
+	display: block;
+}
+.input {
+	border: 1px solid #eee;
+	padding: 8px;
+	border-radius: 4px;
+	font-size: 14px;
+	margin-bottom: 10px;
+}
+.player-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px solid #eee;
+}
+.player-tag {
+	background-color: #f0f0f0;
+	color: #333;
+	padding: 5px 10px;
+	border-radius: 15px;
+	font-size: 13px;
+}
+
+/* 按钮 */
+.actions {
+	display: flex;
+	justify-content: space-around;
+}
+.action-btn {
+	width: 45%;
+}
+</style>

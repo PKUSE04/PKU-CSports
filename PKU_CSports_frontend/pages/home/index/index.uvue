@@ -1,0 +1,357 @@
+<template>
+	<view class="container">
+		<!-- 顶部导航栏内容区域模拟（uni-app通常通过pages.json配置，此处仅为内容区留白和背景） -->
+		<view class="content-wrapper">
+			<!-- 今日赛事区 -->
+			<view class="section-container match-section">
+				<view class="section-header">
+					<text class="section-title-main">今日赛事</text>
+				</view>
+
+				<!-- 比赛阶段筛选标签 (横向滚动) -->
+				<scroll-view class="tabs-scroll" direction="horizontal" :show-scrollbar="false">
+					<view class="tabs-list">
+						<view v-for="tab in competitionTabs" :key="tab.id" :class="['tab-item', { 'tab-active': tab.isActive }]">
+							{{ tab.name }}
+						</view>
+					</view>
+				</scroll-view>
+
+				<!-- 比赛卡片 (横向滚动) -->
+				<scroll-view class="matches-scroll" direction="horizontal" :show-scrollbar="true">
+					<view class="matches-list">
+						
+						<view class="match-card live-match">
+							<text class="match-stage">北大杯1/4决赛</text>
+							<view class="match-content">
+								<view class="team">信科</view>
+								<view class="score-time">
+									<text class="score">0 - 0</text>
+									</view>
+								</view>
+								<view class="team">元培</view>
+								<view class="status live">
+									<text class="live-dot"></text>
+									<text>直播中 90'</text>
+							</view>
+						</view>
+
+						<!-- 示例 2: 未开始 Upcoming Match Card -->
+						<view class="match-card upcoming-match">
+							<text class="match-stage">新生杯决赛</text>
+							<view class="match-content">
+								<view class="team">物理</view>
+								<view class="score-time">
+									<text class="score upcoming-time">17:00</text>
+									<view class="status upcoming" @click="remindMe">
+										<!-- 使用 uni-icons 模拟铃铛图标，如果未引入则使用文本 -->
+										<text class="icon-bell">🔔</text>
+										<text>提醒我</text>
+									</view>
+								</view>
+								<view class="team">国关</view>
+							</view>
+						</view>
+
+						<!-- 示例 3: 更多比赛 Card -->
+						<view class="match-card more-match" @click="goToMoreMatches">
+							<text class="match-stage">查看更多</text>
+							<view class="match-content flex-col justify-center items-center">
+								<text class="text-xl">➡️</text>
+								<text class="text-xs mt-1">全部赛程</text>
+							</view>
+						</view>
+
+					</view>
+				</scroll-view>
+			</view>
+
+			<!-- 前线快讯区 -->
+			<view class="section-container news-section">
+				<text class="section-title-main">前线快讯</text>
+				<view class="news-list">
+					<view class="news-item" v-for="(news, index) in frontLineNews" :key="index">
+						{{ news }}
+					</view>
+				</view>
+			</view>
+
+			<!-- 赛后战报区 -->
+			<view class="section-container report-section">
+				<text class="section-title-main">赛后战报</text>
+				<view class="news-list">
+					<view class="news-item" v-for="(report, index) in postMatchReports" :key="index">
+						{{ report }}
+					</view>
+				</view>
+			</view>
+
+			<!-- 热门资讯/底部区域 -->
+			<view class="section-container more-info-section">
+				<text class="section-title-main">热门资讯</text>
+				<!-- 此处可以添加更多资讯列表 -->
+			</view>
+		</view>
+
+		<!-- 底部占位，模拟与底部导航栏的间距 -->
+		<view style="height: 50px;"></view>
+	</view>
+</template>
+
+<script>
+// uni-app 的 VUE 脚本部分
+export default {
+	data() {
+		return {
+			competitionTabs: [
+				{ id: 1, name: '北大杯1/4决赛', isActive: true },
+				{ id: 2, name: '进行中', isActive: false },
+				{ id: 3, name: '新生杯决赛', isActive: false },
+				{ id: 4, name: '未开始', isActive: false },
+				{ id: 5, name: '全部赛程', isActive: false },
+			],
+			frontLineNews: [
+				'信科开场反客为主，XX禁区内接球爆射破门',
+				'物理学院XX二点停球低射，XX献精彩扑救'
+			],
+			postMatchReports: [
+				'信科 2-1 击败物院，XX梅开二度当选全场最佳',
+				'光华学院 3-0 完胜法学院，小组赛两连胜提前出线'
+			]
+		}
+	},
+	methods: {
+		// 模拟点击提醒我
+		remindMe() {
+			uni.showToast({
+				title: '已设置开赛提醒！',
+				icon: 'none'
+			});
+		},
+		// 模拟跳转到更多赛程
+		goToMoreMatches() {
+			uni.showToast({
+				title: '跳转至全部赛程页...',
+				icon: 'none'
+			});
+			// uni.navigateTo({ url: '/pages/match/list' });
+		}
+	},
+	onLoad() {
+		// 在 uni-app 中，通常在 onLoad 或 onShow 中设置页面标题
+		uni.setNavigationBarTitle({
+			title: '首页'
+		});
+	}
+}
+</script>
+
+<style scoped>
+/* 由于 uni-app 对外部字体链接的支持不一，我们依赖系统默认字体 */
+.container {
+	background-color: #f8f8f8;
+	min-height: 100vh;
+	padding: 0;
+	/* 移除顶部默认 padding，让内容区域更贴合顶部 */
+	font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.content-wrapper {
+	padding: 10px;
+}
+
+/* -------------------- 整体结构样式 -------------------- */
+.section-container {
+	background-color: #fff;
+	padding: 15px;
+	border-radius: 12px;
+	margin-bottom: 15px;
+	/* 扁平化设计，使用轻微的阴影或完全不用 */
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.section-title-main {
+	font-size: 18px;
+	font-weight: 600;
+	color: #333;
+	margin-bottom: 15px;
+	display: block;
+}
+
+/* -------------------- 今日赛事区样式 -------------------- */
+
+/* 1. 比赛阶段筛选标签 */
+.tabs-scroll {
+	white-space: nowrap;
+	width: 100%;
+	margin-bottom: 15px;
+}
+
+.tabs-list {
+	display: flex;
+	flex-direction: row;
+}
+
+.tab-item {
+	display: inline-block;
+	font-size: 13px;
+	padding: 4px 10px;
+	margin-right: 8px;
+	border-radius: 15px;
+	background-color: #eee;
+	color: #666;
+	transition: all 0.2s ease;
+}
+
+.tab-active {
+	background-color: #e54d42;
+	/* 红色作为主色调，匹配图片中的“进行中”标签 */
+	color: #fff;
+	font-weight: 500;
+}
+
+/* 2. 比赛卡片列表 */
+.matches-scroll {
+	white-space: nowrap;
+	width: 100%;
+}
+
+.matches-list {
+	display: flex;
+	flex-direction: row;
+}
+
+.match-card {
+	display: inline-block;
+	width: 250px;
+	/* 固定卡片宽度 */
+	margin-right: 12px;
+	padding: 15px;
+	border-radius: 10px;
+	background-color: #fff;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+	/* 稍微明显一点的卡片阴影 */
+	flex-shrink: 0;
+}
+
+.match-stage {
+	font-size: 12px;
+	color: #999;
+	margin-bottom: 8px;
+	display: block;
+}
+
+.match-content {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.team {
+	font-size: 16px;
+	font-weight: 600;
+	color: #333;
+	text-align: center;
+	width: 30%;
+}
+
+.score-time {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	width: 40%;
+}
+
+.score {
+	font-size: 20px;
+	font-weight: bold;
+	color: #333;
+}
+
+.upcoming-time {
+	font-size: 18px;
+	font-weight: 600;
+	color: #666;
+}
+
+.status {
+	display: flex;
+	align-items: center;
+	font-size: 12px;
+	margin-top: 4px;
+	padding: 2px 5px;
+	border-radius: 4px;
+}
+
+.live {
+	color: #e54d42;
+	font-weight: 500;
+}
+
+.live-dot {
+	width: 6px;
+	height: 6px;
+	background-color: #e54d42;
+	border-radius: 50%;
+	margin-right: 4px;
+}
+
+.upcoming {
+	color: #409eff;
+	/* 蓝色提醒 */
+	font-weight: 500;
+}
+
+.icon-bell {
+	font-size: 14px;
+	margin-right: 3px;
+	/* 铃铛图标 */
+}
+
+/* 额外卡片样式 */
+.more-match {
+	background-color: #f0f0f0;
+	/* 略微区分颜色 */
+	border: 1px dashed #ccc;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	height: 100px;
+	/* 保持高度一致 */
+	margin-right: 0;
+}
+
+/* -------------------- 资讯/战报区样式 -------------------- */
+.news-section, .report-section, .more-info-section {
+	/* 沿用 .section-container 的样式 */
+}
+
+.news-list {
+	display: flex;
+	flex-direction: column;
+}
+
+.news-item {
+	font-size: 15px;
+	color: #333;
+	padding: 10px 0;
+	border-bottom: 1px solid #eee;
+	/* 底部细分隔线 */
+	line-height: 1.4;
+}
+
+.news-item:last-child {
+	border-bottom: none;
+	padding-bottom: 0;
+	/* 最后一个移除底部边线和额外间距 */
+}
+
+/* 辅助类 */
+.text-xl { font-size: 20px; }
+.text-xs { font-size: 12px; }
+.mt-1 { margin-top: 4px; }
+.flex-col { display: flex; flex-direction: column; }
+.justify-center { justify-content: center; }
+.items-center { align-items: center; }
+</style>
