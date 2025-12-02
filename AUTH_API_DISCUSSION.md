@@ -137,3 +137,23 @@ Authorization: Bearer <access_token>
 如需我把这些示例同时加入仓库根目录下的 `requests_test.http`（或生成一个新的）以便后端直接运行测试，我可以一并创建。
 
 请确认文件名与格式是否满意，或告诉我需要补充/删减的点。
+GET http://localhost:3000/api/v1/auth/me
+Authorization: Bearer <access_token>
+
+POST http://localhost:3000/api/v1/auth/refresh
+Content-Type: application/json
+
+```
+{ "refreshToken": "<refresh_token>" }
+```
+
+---
+
+11) 建议补充（可选）
+- 错误 code 列表（`AUTH_INVALID_CREDENTIALS`, `AUTH_TOKEN_EXPIRED`, `AUTH_ACCOUNT_LOCKED`, `VALIDATION_ERROR` 等）
+- API 返回示例加入 `requestId` 与 `code` 有助于前端做更精确的错误处理与国际化
+- 若同意，我可将这些测试用例写入根目录的 `requests_test.http`，并在前端项目中创建 `src/utils/api.js` 封装 `uni.request`。
+
+---
+
+如需我把这个文档调整成 OpenAPI 草案或把 `requests_test.http` 一并创建，请回复我想要的下一步。
