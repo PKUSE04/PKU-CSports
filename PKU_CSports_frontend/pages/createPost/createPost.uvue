@@ -61,6 +61,7 @@
 </template>
 
 <script>
+import { post } from '@/utils/request.js'
 export default {
   data() {
     return {
@@ -130,28 +131,17 @@ export default {
       this.errorMsg = '';
 
       try {
-        // TODO: 实现真正的上传逻辑：先上传 media 到后端获取 URL，再把 content/tags/mediaUrls 发送到 posts API
-        // 目前提供占位的本地演示逻辑
         const payload = {
+          title: this.content.slice(0, 30) || '帖子',
           content: this.content,
+          type: 'post',
           tags: this.tags,
           media: this.media.map(m => ({ type: m.type, path: m.path }))
         };
 
-        // 示例请求（后端需实现 /api/posts 接口）
-        const res = await new Promise((resolve, reject) => {
-          uni.request({
-            url: 'http://localhost:3000/api/posts',
-            method: 'POST',
-            header: { 'Content-Type': 'application/json' },
-            data: payload,
-            success: resolve,
-            fail: reject
-          });
-        });
-
-        const result = res[1] && res[1].data ? res[1].data : res.data || {};
-        if (result && result.success) {
+        const res = await post('/api/news', payload);
+        const result = res.data || {};
+        if (result.success) {
           uni.showToast({ title: '发布成功', icon: 'success' });
           setTimeout(() => {
             uni.navigateBack();

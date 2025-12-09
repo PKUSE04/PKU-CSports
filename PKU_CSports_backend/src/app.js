@@ -10,6 +10,13 @@ app.use(express.json());
 // Mount the authentication routes
 app.use('/api/auth', authRoutes);
 
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Headers', '*')
+  res.header('Access-Control-Allow-Methods', '*')
+  next()
+})
+
 // A simple welcome route
 app.get('/', (req, res) => {
   res.send('Welcome to the CSports API!');

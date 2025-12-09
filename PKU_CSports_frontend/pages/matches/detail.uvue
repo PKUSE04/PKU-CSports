@@ -1,0 +1,177 @@
+<template>
+	<view class="container">
+		<view class="card">
+			<view class="row space">
+				<text class="date">{{ match.date }} {{ match.time }}</text>
+				<text class="status" :class="statusClass">{{ match.status }}</text>
+			</view>
+			<view class="teams">
+				<view class="team" @click="goTeam(match.home.id)">
+					<image :src="match.home.logo" class="logo" />
+					<text class="name">{{ match.home.name }}</text>
+				</view>
+				<view class="score">{{ match.score.home }} - {{ match.score.away }}</view>
+				<view class="team" @click="goTeam(match.away.id)">
+					<image :src="match.away.logo" class="logo" />
+					<text class="name">{{ match.away.name }}</text>
+				</view>
+			</view>
+			<text class="venue">场地：{{ match.venue }}</text>
+		</view>
+
+		<view class="card">
+			<text class="section-title">首发阵容</text>
+			<view class="lineup">
+				<view class="side">
+					<text class="side-title">{{ match.home.name }}</text>
+					<view v-for="p in match.home.starters" :key="p.id" class="player">
+						<text class="num">#{{ p.number }}</text>
+						<text class="pname" @click="goPlayer(p)">{{ p.name }}</text>
+					</view>
+				</view>
+				<view class="side">
+					<text class="side-title">{{ match.away.name }}</text>
+					<view v-for="p in match.away.starters" :key="p.id" class="player">
+						<text class="num">#{{ p.number }}</text>
+						<text class="pname" @click="goPlayer(p)">{{ p.name }}</text>
+					</view>
+				</view>
+			</view>
+		</view>
+
+		<view class="card">
+			<text class="section-title">替补阵容</text>
+			<view class="lineup">
+				<view class="side">
+					<view v-for="p in match.home.bench" :key="p.id" class="player">
+						<text class="num">#{{ p.number }}</text>
+						<text class="pname" @click="goPlayer(p)">{{ p.name }}</text>
+					</view>
+				</view>
+				<view class="side">
+					<view v-for="p in match.away.bench" :key="p.id" class="player">
+						<text class="num">#{{ p.number }}</text>
+						<text class="pname" @click="goPlayer(p)">{{ p.name }}</text>
+					</view>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+import { get } from '@/utils/request.js'
+export default {
+	data() {
+		return {
+			match: {
+				id: '',
+				date: '',
+				time: '',
+				venue: '',
+				status: '',
+				score: { home: '', away: '' },
+				home: { id: '', name: '', logo: '/static/logo.png', starters: [], bench: [] },
+				away: { id: '', name: '', logo: '/static/logo.png', starters: [], bench: [] }
+			}
+		}
+	},
+	computed: {
+		statusClass() {
+			if (this.match.status === '直播中') return 'live'
+			if ((this.match.status || '').indexOf('结束') > -1) return 'done'
+			return 'pending'
+		}
+	},
+	onLoad(options) {
+		if (options.id) this.match.id = options.id
+		this.fetchDetail()
+	},
+	methods: {
+		async fetchDetail() {
+			try {
+				const res = await get(`/api/matches/${this.match.id}`)
+				if (!res.data.success) return
+				const m = res.data.data
+				this.match = {
+					id: m.id,
+					date: (m.date_time || '').slice(5,10),
+					time: (m.date_time || '').slice(11,16),
+					venue: m.venue,
+					status: m.status,
+					score: { home: m.score_home ?? '-', away: m.score_away ?? '-' },
+					home: {
+						id: m.home_team_id,
+						name: m.home_team_name || '主队',
+						logo: m.home_logo || '/static/logo.png',
+						starters: (m.lineup?.starters || []).filter(p => p.side === 'home'),
+						bench: (m.lineup?.bench || []).filter(p => p.side === 'home')
+					},
+					away: {
+						id: m.away_team_id,
+						name: m.away_team_name || '客队',
+						logo: m.away_logo || '/static/logo.png',
+						starters: (m.lineup?.starters || []).filter(p => p.side === 'away'),
+						bench: (m.lineup?.bench || []).filter(p => p.side === 'away')
+					}
+				}
+			} catch (e) {
+				console.warn('match detail fail', e)
+			}
+		},
+		goTeam(teamId) {
+			uni.navigateTo({ url: '/pages/myteam/myteam?teamId=' + teamId })
+		},
+		goPlayer(p) {
+			uni.showToast({ title: `查看球员 ${p.name}`, icon: 'none' })
+		}
+	}
+}
+</script>
+
+<style>
+.container {
+	padding: 12px;
+	background: #f5f6fa;
+	min-height: 100vh;
+}
+.card {
+	background: #fff;
+	border-radius: 12px;
+	padding: 12px;
+	box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+	margin-bottom: 12px;
+}
+.row {
+	display: flex;
+	align-items: center;
+}
+.space {
+	justify-content: space-between;
+}
+.date { color: #666; font-size: 13px; }
+.status { font-size: 13px; padding: 4px 8px; border-radius: 8px; }
+.status.live { background: #ffecec; color: #e54d42; }
+.status.pending { background: #e8f2ff; color: #3c7dff; }
+.status.done { background: #f0f0f0; color: #666; }
+.teams {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin: 10px 0;
+}
+.team { display: flex; flex-direction: column; align-items: center; }
+.logo { width: 52px; height: 52px; border-radius: 50%; background: #f2f2f2; }
+.name { margin-top: 6px; font-weight: 600; color: #333; }
+.score { font-size: 22px; font-weight: 800; color: #111; }
+.venue { color: #888; font-size: 12px; }
+.section-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; color: #333; }
+.lineup { display: flex; gap: 16px; }
+.side { flex: 1; background: #f8f9fb; border-radius: 10px; padding: 10px; }
+.side-title { font-weight: 700; margin-bottom: 6px; display: block; }
+.player { display: flex; align-items: center; padding: 6px 0; border-bottom: 1px solid #eee; }
+.player:last-child { border-bottom: none; }
+.num { width: 34px; color: #888; }
+.pname { color: #333; }
+</style>
+

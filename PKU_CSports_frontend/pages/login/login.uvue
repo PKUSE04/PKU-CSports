@@ -48,11 +48,12 @@
 </template>
 
 <script>
+import { post } from '@/utils/request.js'
 export default {
 	data() {
 		return {
-			username: '',
-			password: '',
+			username: 'testuser', // 默认测试账号
+			password: '123456',
 			loading: false,
 			errorMsg: ''
 		}
@@ -69,31 +70,12 @@ export default {
 			this.errorMsg = '';
 
 			try {
-				// 调用登录接口
-				const response = await uni.request({
-					url: 'http://localhost:3000/api/auth/login',
-					method: 'POST',
-					header: {
-						'Content-Type': 'application/json'
-					},
-					data: {
-						username: this.username,
-						password: this.password
-					}
+				const res = await post('/api/auth/login', {
+					username: this.username,
+					password: this.password
 				});
-
-				const [error, res] = response;
-				
-				if (error) {
-					this.errorMsg = '网络请求失败，请检查后端服务';
-					this.loading = false;
-					return;
-				}
-
 				const result = res.data;
-
 				if (result.success) {
-					// 登录成功，保存token和用户信息
 					uni.setStorageSync('token', result.data.token);
 					uni.setStorageSync('userInfo', result.data.user);
 					
@@ -107,7 +89,7 @@ export default {
 						uni.reLaunch({
 							url: '/pages/index/index'
 						});
-					}, 1000);
+					}, 800);
 				} else {
 					this.errorMsg = result.message || '登录失败';
 				}

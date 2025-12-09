@@ -6,8 +6,8 @@
 		<view class="comments-section">
 			<view class="comments-title">评论区</view>
 			<view v-for="(comment, idx) in comments" :key="idx" class="comment-item">
-				<text class="comment-user">{{ comment.user }}</text>
-				<text class="comment-text">{{ comment.text }}</text>
+				<text class="comment-user">{{ comment.username || comment.user }}</text>
+				<text class="comment-text">{{ comment.content || comment.text }}</text>
 			</view>
 			<!-- 只允许普通用户评论 -->
 			<view v-if="user.canComment" class="comment-input-bar">
@@ -19,33 +19,63 @@
 </template>
 
 <script>
+import { get, post } from '@/utils/request.js'
 export default {
 	data() {
 		return {
+			id: '',
 			news: {
-				title: '资讯标题示例',
-				content: '这里是资讯内容，根据id加载实际内容。'
+				title: '',
+				content: ''
 			},
-			comments: [
-				{ user: '用户A', text: '精彩！' },
-				{ user: '用户B', text: '分析很到位。' }
-			],
+			comments: [],
 			user: {
-				name: '普通用户',
-				canComment: true // 只允许评论，无发帖权限
+				name: '',
+				canComment: false
 			},
 			newComment: ''
 		}
 	},
 	onLoad(options) {
-		// 根据 options.id 加载资讯内容和评论，实际开发中应请求后端
-		console.log('加载资讯详情，id:', options.id);
+		this.id = options.id
+		this.user = {
+			name: (uni.getStorageSync('userInfo') || {}).username || '游客',
+			canComment: !!uni.getStorageSync('token')
+		}
+		this.fetchDetail()
+		this.fetchComments()
 	},
 	methods: {
-		submitComment() {
-			if (!this.newComment) return;
-			this.comments.push({ user: this.user.name, text: this.newComment });
-			this.newComment = '';
+		async fetchDetail() {
+			try {
+				const res = await get(`/api/news/${this.id}`)
+				if (res.data.success) this.news = res.data.data
+			} catch (e) {
+				console.warn('news detail fail', e)
+			}
+		},
+		async fetchComments() {
+			try {
+				const res = await get(`/api/comments/${this.id}`)
+				this.comments = res.data.data || []
+			} catch (e) {
+				console.warn('comments fail', e)
+			}
+		},
+		async submitComment() {
+			if (!this.newComment.trim()) return;
+			try {
+				const res = await post(`/api/comments/${this.id}`, { content: this.newComment })
+				if (res.data.success) {
+					this.comments.push(res.data.data)
+					this.newComment = ''
+				} else {
+					uni.showToast({ title: '发送失败', icon: 'none' })
+				}
+			} catch (e) {
+				console.warn('submit comment fail', e)
+				uni.showToast({ title: '发送失败', icon: 'none' })
+			}
 		}
 	}
 }

@@ -60,27 +60,16 @@
 <script>
 import CustomTabBar from '@/components/CustomTabBar.uvue'
 import TopRightIcon from '@/components/TopRightIcon.uvue'
+import { get } from '@/utils/request.js'
 
 export default {
 	components: { CustomTabBar, TopRightIcon },
 
 	data() {
 		return {
-			// 需要替换成后端接口返回的数据
-			todayMatches: [
-				{ home: "信科", away: "元培", score: "0 - 0", status: "直播中 90'" },
-				{ home: "物院", away: "化院", score: "1 - 2", status: "已结束" }
-			],
-
-			newsFlash: [
-				{ id: 1, title: "信科开局强势，禁区爆射破门！" },
-				{ id: 2, title: "物院控球率提升，比赛进入胶着状态" }
-			],
-
-			postReports: [
-				{ id: 3, title: "信科 2-1 击败物院，XX梅开二度！" },
-				{ id: 4, title: "元培逆转局势，最终3-2险胜信院!" }
-			]
+			todayMatches: [],
+			newsFlash: [],
+			postReports: []
 		}
 	},
 
@@ -92,12 +81,35 @@ export default {
 			uni.navigateTo({
 				url: `/pages/news/news-detail?id=${id}`
 			});
+		},
+		async fetchNews() {
+			try {
+				const flashRes = await get('/api/news', { type: 'flash', pageSize: 5 });
+				const reportRes = await get('/api/news', { type: 'report', pageSize: 5 });
+				this.newsFlash = (flashRes.data.data) || [];
+				this.postReports = (reportRes.data.data) || [];
+			} catch (e) {
+				console.warn('fetch news fail', e);
+			}
+		},
+		async fetchMatches() {
+			try {
+				const res = await get('/api/matches', { pageSize: 5 });
+				this.todayMatches = (res.data.data || []).map(m => ({
+					home: m.home_team_name || m.home_team_id,
+					away: m.away_team_name || m.away_team_id,
+					score: m.score_home != null ? `${m.score_home} - ${m.score_away}` : 'vs',
+					status: m.status,
+				}));
+			} catch (e) {
+				console.warn('fetch matches fail', e);
+			}
 		}
 	},
 
 	onLoad() {
-		console.log("首页加载完成，准备请求后端赛事数据...");
-		// TODO: 未来接入真实 API
+		this.fetchNews();
+		this.fetchMatches();
 	}
 }
 </script>
