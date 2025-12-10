@@ -8,8 +8,10 @@ const pool = new Pool({
   password: process.env.PG_PASSWORD || 'huajinaiqing0063', // <-- 修改为你的 PostgreSQL 密码
   database: process.env.PG_DATABASE || 'csports_db',       // <-- 修改为你的数据库名
   port: process.env.PG_PORT ? parseInt(process.env.PG_PORT) : 5432,
-  max: 10,
+  max: 30, // 增加连接池大小以支持高并发
   idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000, // 连接超时时间
+  allowExitOnIdle: false, // 保持连接池活跃
 });
 
 // 测试连接
@@ -24,6 +26,15 @@ const testConnection = async () => {
   }
 };
 testConnection();
+
+// 添加连接池错误处理
+pool.on('error', (err, client) => {
+  console.error('Unexpected error on idle client', err);
+  process.exit(-1);
+});
+
+// 导出 query 方法，自动处理连接获取和释放
+pool.query = pool.query.bind(pool);
 
 module.exports = pool;
 

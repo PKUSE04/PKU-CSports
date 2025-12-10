@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "@testing-library/vue": "^8.1.0",
+    "@vue/test-utils": "^2.4.6",
+    "jest": "^30.2.0",
+    "jsdom": "^27.3.0",
+    "supertest": "^7.1.4",
+    "vitest": "^4.0.15"
+  }
+}
