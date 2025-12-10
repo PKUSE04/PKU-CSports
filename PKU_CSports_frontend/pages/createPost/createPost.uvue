@@ -72,7 +72,21 @@ export default {
       showEmoji: false,
       emojis: ['😀','😃','😂','😍','👍','🔥','🎉','🤔','🙏','💯'],
       loading: false,
-      errorMsg: ''
+      errorMsg: '',
+      userRole: 'user'
+    }
+  },
+  computed: {
+    canPublish() {
+      return this.userRole === 'association' || this.userRole === 'admin'
+    }
+  },
+  onShow() {
+    const info = uni.getStorageSync('userInfo') || {}
+    this.userRole = info.role || 'user'
+    if (!this.canPublish) {
+      uni.showToast({ title: '仅协会方/管理员可发布', icon: 'none' })
+      setTimeout(() => uni.navigateBack(), 800)
     }
   },
   methods: {

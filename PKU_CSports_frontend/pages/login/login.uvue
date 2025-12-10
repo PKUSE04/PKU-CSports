@@ -42,7 +42,7 @@
 		<!-- 底部链接 -->
 		<view class="footer">
 			<text class="footer-text">还没有账号？</text>
-			<text class="link-text">立即注册</text>
+			<button class="register-btn" @click="goToRegister">立即注册</button>
 		</view>
 	</view>
 </template>
@@ -99,6 +99,11 @@ export default {
 			} finally {
 				this.loading = false;
 			}
+		},
+		goToRegister() {
+			uni.navigateTo({
+				url: '/pages/login/register'
+			});
 		}
 	}
 }
@@ -218,5 +223,16 @@ export default {
 	font-size: 14px;
 	color: #fff;
 	font-weight: bold;
+}
+
+.register-btn {
+	height: 36px;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: #fff;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: bold;
+	border: none;
+	padding: 0 15px;
 }
 </style>

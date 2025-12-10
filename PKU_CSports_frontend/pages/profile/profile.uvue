@@ -35,6 +35,9 @@
 				<text class="menu-text">设置</text>
 				<text class="menu-arrow">></text>
 			</view>
+			<view class="menu-item" @click="handleLogout">
+				<text class="menu-text logout">退出登录</text>
+			</view>
 		</view>
 
 		<CustomTabBar :currentIndex="-1" />
@@ -49,6 +52,26 @@ export default {
 	data() {
 		return {
 			// 个人页面数据
+		}
+	},
+	methods: {
+		handleLogout() {
+			uni.showModal({
+				title: '确认退出',
+				content: '确定要退出登录吗？',
+				success: (res) => {
+					if (res.confirm) {
+						// 清除登录信息
+						uni.removeStorageSync('token');
+						uni.removeStorageSync('userInfo');
+						
+						// 跳转到登录页面
+						uni.reLaunch({
+							url: '/pages/login/login'
+						});
+					}
+				}
+			});
 		}
 	}
 }
@@ -145,6 +168,10 @@ export default {
 .menu-text {
 	font-size: 15px;
 	color: #333;
+}
+
+.logout {
+	color: #e54d42;
 }
 
 .menu-arrow {
