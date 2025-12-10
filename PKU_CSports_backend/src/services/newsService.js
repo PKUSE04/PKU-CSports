@@ -3,7 +3,7 @@ const db = require('../config/db');
 exports.list = async ({ type, tag, page = 1, pageSize = 10 }) => {
   const offset = (page - 1) * pageSize;
   const params = [];
-  let where = [];
+  const where = [];
 
   if (type && type !== 'all') {
     params.push(type);

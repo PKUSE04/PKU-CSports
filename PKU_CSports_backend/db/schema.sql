@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS teams (
   league VARCHAR(50),
   created_at TIMESTAMP DEFAULT NOW()
 );
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_team_name ON teams(name);
 
 -- 球员表
 CREATE TABLE IF NOT EXISTS players (

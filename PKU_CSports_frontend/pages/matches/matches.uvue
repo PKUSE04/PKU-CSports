@@ -6,7 +6,7 @@
 			<text class="header-title">赛事</text>
 			<view class="header-icon">⚽</view>
 		</view>
-
+		
 		<!-- 筛选标签 -->
 		<scroll-view scroll-x class="filter-bar">
 			<view
@@ -37,20 +37,16 @@
 <script>
 import CustomTabBar from '@/components/CustomTabBar.uvue'
 import TopRightIcon from '@/components/TopRightIcon.uvue'
+import { get } from '@/utils/request.js'
 export default {
-		components: { CustomTabBar, TopRightIcon },
+	components: { CustomTabBar, TopRightIcon },
 	data() {
 		return {
-			tags: ['全部','直播','已结束','新生杯','北大杯'],
+			tags: ['全部', '直播', '已结束', '新生杯'],
 			activeTag: '全部',
-			matches: [
-				{ id: 'm1', date: '10.17', time: '19:00', home: '信工联队', away: '元社联队', status: '已结束', venue: '邱德拔B2', tag: '新生杯' },
-				{ id: 'm2', date: '10.18', time: '20:00', home: '一地花生', away: '经数联队', status: '直播中', venue: '邱德拔B2', tag: '新生杯' },
-				{ id: 'm3', date: '10.19', time: '18:00', home: '信科Ⅱ', away: '光华Ⅱ', status: '未开始', venue: '五四操场', tag: '北大杯' }
-			]
+			matches: []
 		}
-	}
-	,
+	},
 	computed: {
 		filteredMatches() {
 			if (this.activeTag === '全部') return this.matches
@@ -62,6 +58,7 @@ export default {
 	methods: {
 		toggleTag(tag) {
 			this.activeTag = tag
+			this.fetchMatches()
 		},
 		goDetail(id) {
 			uni.navigateTo({ url: `/pages/matches/detail?id=${id}` })
@@ -70,7 +67,31 @@ export default {
 			if (status === '直播中') return 'live'
 			if (status.indexOf('结束') > -1) return 'done'
 			return 'pending'
+		},
+		async fetchMatches() {
+			try {
+				const res = await get('/api/matches', {
+					status: this.activeTag === '直播' ? '直播中' : (this.activeTag === '已结束' ? '已结束' : ''),
+					league: ['新生杯','北大杯甲级','北大杯乙级'].includes(this.activeTag) ? this.activeTag : '',
+					pageSize: 50
+				})
+				this.matches = (res.data.data || []).map(m => ({
+					id: m.id,
+					date: (m.date_time || '').slice(5,10),
+					time: (m.date_time || '').slice(11,16),
+					home: m.home_team_name || m.home_team_id,
+					away: m.away_team_name || m.away_team_id,
+					status: m.status,
+					venue: m.venue,
+					tag: m.league
+				}))
+			} catch (e) {
+				console.warn('fetch matches fail', e)
+			}
 		}
+	},
+	onLoad() {
+		this.fetchMatches()
 	}
 }
 </script>
@@ -98,6 +119,27 @@ export default {
 }
 .header-icon {
 	font-size: 22px;
+}
+
+.filter-bar {
+	white-space: nowrap;
+	display: flex;
+	flex-direction: row;
+	background: #fff;
+	padding: 10px;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.filter-chip {
+	display: inline-block;
+	padding: 8px 14px;
+	margin-right: 8px;
+	border-radius: 18px;
+	background: #f2f2f2;
+	color: #666;
+}
+.filter-chip.active {
+	background: #409eff;
+	color: #fff;
 }
 .matches-list {
 	flex: 1;

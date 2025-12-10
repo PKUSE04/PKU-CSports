@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-// 从请求头解析 Bearer token，附加 user 信息到 req.user
+// 解析 Bearer Token 并附加用户信息
 const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
@@ -19,7 +19,7 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-// 角色校验：仅允许 roles 列表中的角色访问
+// 角色校验
 const allowRoles = (...roles) => (req, res, next) => {
   if (!req.user || !roles.includes(req.user.role)) {
     return res.status(403).json({ success: false, message: '无访问权限' });

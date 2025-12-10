@@ -78,6 +78,7 @@
 <script>
 import CustomTabBar from '@/components/CustomTabBar.uvue'
 import TopRightIcon from '@/components/TopRightIcon.uvue'
+import { get } from '@/utils/request.js'
 
 export default {
 	components: { CustomTabBar, TopRightIcon },
@@ -85,7 +86,7 @@ export default {
 	data() {
 		return {
 			leagues: ['新生杯', '北大杯甲级', '北大杯乙级'],
-			currentLeague: 1,
+			currentLeague: 0,
 
 			dataTabs: ['球员', '球队', '积分'],
 			currentDataTab: 0,
@@ -157,18 +158,46 @@ export default {
 
 		// ⭐ 可接入后端的统一数据请求函数
 		fetchRankingData() {
-			console.log('请求数据:', {
-				league: this.leagues[this.currentLeague],
-				type: this.dataTabs[this.currentDataTab]
-			})
+			const league = this.leagues[this.currentLeague]
+			const type = this.dataTabs[this.currentDataTab]
 
-			// TODO: uni.request 请求后端接口
-			// 示例数据：
-			this.rankingData = [
-				{ rank: 1, name: '张三', department: '计算机系', goals: 12, avatar: '' },
-				{ rank: 2, name: '李四', department: '数学系', goals: 9, avatar: '' },
-				{ rank: 3, name: '王五', department: '物理系', goals: 8, avatar: '' }
-			]
+			if (type === '积分') {
+				this.fetchStandings(league)
+			} else {
+				this.fetchPlayerStats(league, type === '球员' ? 'goals' : 'goals')
+			}
+		},
+
+		async fetchStandings(league) {
+			try {
+				const res = await get('/api/standings', { league })
+				const rows = res.data.data || []
+				this.rankingData = rows.map((r, idx) => ({
+					rank: idx + 1,
+					team: r.team_name || r.team_id,
+					points: r.points,
+					wins: r.win,
+					goals: r.goals_for
+				}))
+			} catch (e) {
+				console.warn('standings fail', e)
+			}
+		},
+
+		async fetchPlayerStats(league, sort) {
+			try {
+				const res = await get('/api/standings/players', { league, sort })
+				const rows = res.data.data || []
+				this.rankingData = rows.map((r, idx) => ({
+					rank: idx + 1,
+					name: r.player_name || r.player_id,
+					department: r.team_name || league,
+					goals: r.goals,
+					avatar: ''
+				}))
+			} catch (e) {
+				console.warn('player stats fail', e)
+			}
 		},
 
 		rankColor(rank) {
@@ -191,6 +220,16 @@ export default {
 	background: #f5f6fa;
 	min-height: 100vh;
 	padding-bottom: 60px;
+}
+.nav-bar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 18px 16px 8px 16px;
+	background: #fff;
+	font-size: 20px;
+	font-weight: bold;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
 /* --- 联赛 Tab --- */

@@ -28,6 +28,7 @@
 </template>
 
 <script>
+import { get } from '@/utils/request.js'
 export default {
 	data() {
 		return {
@@ -39,19 +40,14 @@ export default {
 			currentType: 'all',
 			tags: ['热门', '进球', '防守', '伤病', '校园杯', '新生杯'],
 			activeTag: '',
-			list: [
-				{ id: 1, title: '信工开局强势，禁区爆射破门！', type: 'flash', tags: ['热门','进球'], time: '10-17 19:00' },
-				{ id: 2, title: '元社联队4:2战胜经数联队', type: 'report', tags: ['校园杯'], time: '10-17 21:00' },
-				{ id: 3, title: '信工 2-1 物院，梅开二度！', type: 'report', tags: ['热门','进球'], time: '10-18 20:00' },
-				{ id: 4, title: '伤病更新：主力前锋恢复训练', type: 'flash', tags: ['伤病'], time: '10-19 10:00' }
-			]
+			list: []
 		}
 	},
 	onLoad(options) {
 		if (options.type) {
 			this.currentType = options.type
 		}
-		// TODO: 替换为后端接口请求列表
+		this.fetchList()
 	},
 	computed: {
 		filteredList() {
@@ -65,9 +61,26 @@ export default {
 	methods: {
 		switchType(val) {
 			this.currentType = val
+			this.fetchList()
 		},
 		toggleTag(tag) {
 			this.activeTag = this.activeTag === tag ? '' : tag
+			this.fetchList()
+		},
+		async fetchList() {
+			try {
+				const res = await get('/api/news', {
+					type: this.currentType === 'all' ? '' : this.currentType,
+					tag: this.activeTag,
+					pageSize: 30
+				})
+				this.list = (res.data.data || []).map(item => ({
+					...item,
+					time: item.created_at ? item.created_at.slice(5,16) : ''
+				}))
+			} catch (e) {
+				console.warn('fetch news list fail', e)
+			}
 		},
 		goDetail(id) {
 			uni.navigateTo({ url: `/pages/news/news-detail?id=${id}` })
