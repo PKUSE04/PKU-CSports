@@ -14,7 +14,7 @@
 			<button class="publish-btn" @click="goToCreatePost">发布</button>
 		</view>
 
-		<!-- 战术板/阵容模拟器入口（image_827178.png 的主要内容） -->
+		<!-- 战术板/阵容模拟器入口 -->
 		<view class="tool-section">
 			<view class="tool-title">阵容模拟</view>
 			<view class="tool-box" @click="goToFormationSimulator">

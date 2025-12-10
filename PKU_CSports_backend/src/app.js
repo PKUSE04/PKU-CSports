@@ -25,6 +25,11 @@ app.use((req, res, next) => {
   next()
 })
 
+// A simple welcome route
+app.get('/', (req, res) => {
+  res.send('Welcome to the CSports API!');
+});
+
 // 404 JSON
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Not Found' });
@@ -36,11 +41,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Server Error' });
 });
 
-// A simple welcome route
-app.get('/', (req, res) => {
-  res.send('Welcome to the CSports API!');
-});
+// 仅在直接运行时启动监听，测试中可直接 import app
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Backend server is running on http://localhost:${PORT}`);
+  });
+}
 
-app.listen(PORT, () => {
-  console.log(`Backend server is running on http://localhost:${PORT}`);
-});
+module.exports = app;
