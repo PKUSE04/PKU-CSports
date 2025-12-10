@@ -86,7 +86,7 @@ export default {
 	data() {
 		return {
 			leagues: ['新生杯', '北大杯甲级', '北大杯乙级'],
-			currentLeague: 1,
+			currentLeague: 0,
 
 			dataTabs: ['球员', '球队', '积分'],
 			currentDataTab: 0,
@@ -174,7 +174,7 @@ export default {
 				const rows = res.data.data || []
 				this.rankingData = rows.map((r, idx) => ({
 					rank: idx + 1,
-					team: r.team_id,
+					team: r.team_name || r.team_id,
 					points: r.points,
 					wins: r.win,
 					goals: r.goals_for
@@ -190,8 +190,8 @@ export default {
 				const rows = res.data.data || []
 				this.rankingData = rows.map((r, idx) => ({
 					rank: idx + 1,
-					name: r.player_id,
-					department: league,
+					name: r.player_name || r.player_id,
+					department: r.team_name || league,
 					goals: r.goals,
 					avatar: ''
 				}))

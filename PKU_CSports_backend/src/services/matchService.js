@@ -9,11 +9,16 @@ exports.list = async ({ status, league, round, page = 1, pageSize = 20 }) => {
   if (round)  { params.push(round);  where.push(`round = $${params.length}`); }
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const sql = `
-    SELECT id, league, round, date_time, venue, status,
-           home_team_id, away_team_id, score_home, score_away
-    FROM matches
+    SELECT 
+      m.id, m.league, m.round, m.date_time, m.venue, m.status,
+      m.home_team_id, ht.name AS home_team_name, ht.logo AS home_team_logo,
+      m.away_team_id, at.name AS away_team_name, at.logo AS away_team_logo,
+      m.score_home, m.score_away
+    FROM matches m
+    LEFT JOIN teams ht ON ht.id = m.home_team_id
+    LEFT JOIN teams at ON at.id = m.away_team_id
     ${whereSql}
-    ORDER BY date_time DESC
+    ORDER BY m.date_time DESC
     LIMIT ${pageSize} OFFSET ${offset}
   `;
   const result = await db.query(sql, params);

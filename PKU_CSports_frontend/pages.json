@@ -29,10 +29,22 @@
 			}
 		},
 		{
+			"path": "pages/matches/detail",
+			"style": {
+				"navigationBarTitleText": "赛事详情"
+			}
+		},
+		{
 			"path": "pages/tools/tools",
 			"style": {
 				"navigationBarTitleText": "工具箱",
 				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/news/news-list",
+			"style": {
+				"navigationBarTitleText": "资讯列表"
 			}
 		},
 		{
@@ -50,8 +62,7 @@
 		{
 			"path": "pages/createPost/createPost",
 			"style": {
-				"navigationBarTitleText": "发布内容",
-				"navigationStyle": "custom"
+				"navigationBarTitleText": "发布内容"
 			}
 		},
 		{
