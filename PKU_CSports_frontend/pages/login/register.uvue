@@ -52,29 +52,61 @@ export default {
 			}
 			this.loading = true;
 			this.errorMsg = '';
-			try {
-				const res = await post('/api/auth/register', {
-					username: this.username,
-					password: this.password
-				});
-				const result = res.data;
-				if (result.success) {
-					uni.showToast({
-						title: '注册成功',
-						icon: 'success'
+				try {
+					const res = await post('/api/auth/register', {
+						username: this.username,
+						password: this.password
 					});
-					setTimeout(() => {
-						uni.reLaunch({ url: '/pages/login/login' });
-					}, 800);
-				} else {
-					this.errorMsg = result.message || '注册失败';
+					const result = res.data;
+					if (result.success) {
+						// 如果后端返回 token，直接保存并跳转首页
+						const returned = result.data || {};
+						const token = returned.token;
+						const user = returned.user;
+						if (token) {
+							uni.setStorageSync('token', token);
+							if (user) uni.setStorageSync('user', user);
+							uni.showToast({ title: '注册成功，已登录', icon: 'success' });
+							setTimeout(() => {
+								uni.reLaunch({ url: '/pages/index/index' });
+							}, 800);
+						} else {
+							// 否则尝试自动登录以获取 token
+							try {
+								const loginRes = await post('/api/auth/login', {
+									username: this.username,
+									password: this.password
+								});
+								const loginResult = loginRes.data || {};
+								if (loginResult.success && loginResult.data && loginResult.data.token) {
+									uni.setStorageSync('token', loginResult.data.token);
+									if (loginResult.data.user) uni.setStorageSync('user', loginResult.data.user);
+									uni.showToast({ title: '注册并登录成功', icon: 'success' });
+									setTimeout(() => {
+										uni.reLaunch({ url: '/pages/index/index' });
+									}, 800);
+								} else {
+									uni.showToast({ title: '注册成功，请登录', icon: 'success' });
+									setTimeout(() => {
+										uni.reLaunch({ url: '/pages/login/login' });
+									}, 800);
+								}
+							} catch (e) {
+								uni.showToast({ title: '注册成功，请登录', icon: 'success' });
+								setTimeout(() => {
+									uni.reLaunch({ url: '/pages/login/login' });
+								}, 800);
+							}
+						}
+					} else {
+						this.errorMsg = result.message || '注册失败';
+					}
+				} catch (err) {
+					console.error('注册错误:', err);
+					this.errorMsg = '注册失败，请稍后重试';
+				} finally {
+					this.loading = false;
 				}
-			} catch (err) {
-				console.error('注册错误:', err);
-				this.errorMsg = '注册失败，请稍后重试';
-			} finally {
-				this.loading = false;
-			}
 		}
 	}
 }

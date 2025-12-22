@@ -1,0 +1,170 @@
+<template>
+  <view class="container">
+    <view class="card">
+      <text class="title">创建赛程</text>
+      <view class="form-row">
+        <text>主队</text>
+        <input v-model="home" placeholder="主队名称或ID" />
+      </view>
+      <view class="form-row">
+        <text>客队</text>
+        <input v-model="away" placeholder="客队名称或ID" />
+      </view>
+      <view class="form-row">
+        <text>时间</text>
+        <input v-model="dateTime" placeholder="YYYY-MM-DD HH:mm" />
+      </view>
+      <text class="section-title">主队 首发（填写 player_id）</text>
+      <view class="rows">
+        <view class="row-item" v-for="(r, idx) in homeStarters" :key="'hs-'+idx">
+          <input v-model="r.number" class="num-input" placeholder="号" />
+          <input v-model="r.player_id" class="num-input" placeholder="player_id" />
+          <button class="small" @click="removeRow('home','starters', idx)">删除</button>
+        </view>
+        <button class="add" @click="addRow('home','starters')">添加首发</button>
+      </view>
+
+      <text class="section-title">主队 替补（填写 player_id）</text>
+      <view class="rows">
+        <view class="row-item" v-for="(r, idx) in homeBench" :key="'hb-'+idx">
+          <input v-model="r.number" class="num-input" placeholder="号" />
+          <input v-model="r.player_id" class="num-input" placeholder="player_id" />
+          <button class="small" @click="removeRow('home','bench', idx)">删除</button>
+        </view>
+        <button class="add" @click="addRow('home','bench')">添加替补</button>
+      </view>
+
+      <text class="section-title">客队 首发（填写 player_id）</text>
+      <view class="rows">
+        <view class="row-item" v-for="(r, idx) in awayStarters" :key="'as-'+idx">
+          <input v-model="r.number" class="num-input" placeholder="号" />
+          <input v-model="r.player_id" class="num-input" placeholder="player_id" />
+          <button class="small" @click="removeRow('away','starters', idx)">删除</button>
+        </view>
+        <button class="add" @click="addRow('away','starters')">添加首发</button>
+      </view>
+
+      <text class="section-title">客队 替补（填写 player_id）</text>
+      <view class="rows">
+        <view class="row-item" v-for="(r, idx) in awayBench" :key="'ab-'+idx">
+          <input v-model="r.number" class="num-input" placeholder="号" />
+          <input v-model="r.player_id" class="num-input" placeholder="player_id" />
+          <button class="small" @click="removeRow('away','bench', idx)">删除</button>
+        </view>
+        <button class="add" @click="addRow('away','bench')">添加替补</button>
+      </view>
+      <view class="actions">
+        <button class="btn" :disabled="loading" @click="submit">{{ loading ? '保存中...' : '创建' }}</button>
+        <button class="btn ghost" @click="cancel">取消</button>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+import { post } from '@/utils/request.js'
+export default {
+  data() {
+    return {
+      home: '',
+      away: '',
+      dateTime: '',
+      loading: false,
+      // rows for lineup: { number: '', player_id: '' }
+      homeStarters: [],
+      homeBench: [],
+      awayStarters: [],
+      awayBench: []
+    }
+  },
+  methods: {
+    addRow(side, type) {
+      const row = { number: '', player_id: '' }
+      if (side === 'home') {
+        if (type === 'starters') this.homeStarters.push(row)
+        else this.homeBench.push(row)
+      } else {
+        if (type === 'starters') this.awayStarters.push(row)
+        else this.awayBench.push(row)
+      }
+    },
+
+    removeRow(side, type, idx) {
+      if (side === 'home') {
+        if (type === 'starters') this.homeStarters.splice(idx,1)
+        else this.homeBench.splice(idx,1)
+      } else {
+        if (type === 'starters') this.awayStarters.splice(idx,1)
+        else this.awayBench.splice(idx,1)
+      }
+    },
+
+    async submit() {
+      this.loading = true
+      try {
+        const payload = {
+          home_team: this.home,
+          away_team: this.away,
+          date_time: this.dateTime
+        }
+        const res = await post('/api/matches', payload)
+        if (res.data && res.data.success) {
+          // get created match id from response (try several common keys)
+          const created = res.data.data || {}
+          const matchId = created.id || created.matchId || created.match_id
+          // if user added lineup rows, submit full lineup (local player_id inputs expected)
+          const buildLineup = () => {
+            const arr = []
+            const push = (r, side, isStarter) => {
+              const pid = r.player_id ? Number(r.player_id) : null
+              if (pid) arr.push({ player_id: pid, side, is_starter: !!isStarter })
+            }
+            this.homeStarters.forEach(r => push(r, 'home', true))
+            this.homeBench.forEach(r => push(r, 'home', false))
+            this.awayStarters.forEach(r => push(r, 'away', true))
+            this.awayBench.forEach(r => push(r, 'away', false))
+            return arr
+          }
+
+          const lineupArr = buildLineup()
+          if (matchId && lineupArr.length) {
+            try {
+              await post(`/api/matches/${matchId}/lineup`, { lineup: lineupArr })
+            } catch (e) {
+              console.warn('submit lineup failed', e)
+              uni.showToast({ title: '赛程创建成功但阵容提交失败', icon: 'none' })
+              setTimeout(() => uni.navigateBack(), 800)
+              this.loading = false
+              return
+            }
+          }
+
+          uni.showToast({ title: '创建成功', icon: 'success' })
+          setTimeout(() => uni.navigateBack(), 600)
+        } else {
+          uni.showToast({ title: res.data.message || '创建失败', icon: 'none' })
+        }
+      } catch (e) {
+        console.error('create match failed', e)
+        uni.showToast({ title: '请求失败', icon: 'none' })
+      } finally {
+        this.loading = false
+      }
+    },
+    cancel() {
+      uni.navigateBack()
+    }
+  }
+}
+</script>
+
+<style>
+.container { padding: 12px; background: #f5f6fa; min-height: 100vh }
+.card { background:#fff; border-radius:12px; padding:12px }
+.title { font-weight:700; margin-bottom:8px }
+.form-row { display:flex; align-items:center; gap:8px; margin-bottom:10px }
+.input { flex:1 }
+.actions { display:flex; gap:8px; margin-top:12px }
+.btn { background:#409eff; color:#fff; padding:8px 12px; border-radius:8px }
+.btn.ghost { background:transparent; color:#333; border:1px solid #eee }
+</style>
