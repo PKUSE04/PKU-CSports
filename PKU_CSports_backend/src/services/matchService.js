@@ -89,3 +89,30 @@ exports.upsertLineup = async (matchId, body) => {
   }
 };
 
+exports.addLineupItem = async (matchId, item) => {
+  const { player_id, side = 'home', is_starter = false } = item || {};
+  if (!player_id) return null;
+  const res = await db.query(
+    `INSERT INTO lineups (match_id, player_id, side, is_starter) VALUES ($1,$2,$3,$4) RETURNING *`,
+    [matchId, player_id, side, !!is_starter]
+  );
+  return res.rows[0];
+};
+
+exports.updateLineupItem = async (matchId, playerId, payload) => {
+  const { side, is_starter } = payload || {};
+  const res = await db.query(
+    `UPDATE lineups SET
+       side = COALESCE($1, side),
+       is_starter = COALESCE($2, is_starter)
+     WHERE match_id = $3 AND player_id = $4 RETURNING *`,
+    [side, typeof is_starter === 'undefined' ? null : !!is_starter, matchId, playerId]
+  );
+  return res.rows[0];
+};
+
+exports.deleteLineupItem = async (matchId, playerId) => {
+  const res = await db.query('DELETE FROM lineups WHERE match_id = $1 AND player_id = $2 RETURNING *', [matchId, playerId]);
+  return res.rows[0];
+};
+
