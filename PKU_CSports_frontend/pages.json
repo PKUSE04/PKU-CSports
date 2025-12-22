@@ -41,16 +41,22 @@
 			}
 		},
 		{
+			"path": "pages/matches/update",
+			"style": {
+				"navigationBarTitleText": "更新赛事"
+			}
+		},
+		{
+			"path": "pages/matches/createMatch",
+			"style": {
+				"navigationBarTitleText": "创建赛程"
+			}
+		},
+		{
 			"path": "pages/tools/tools",
 			"style": {
 				"navigationBarTitleText": "工具箱",
 				"navigationStyle": "custom"
-			}
-		},
-		{
-			"path": "pages/news/news-list",
-			"style": {
-				"navigationBarTitleText": "资讯列表"
 			}
 		},
 		{
@@ -62,8 +68,7 @@
 		{
 			"path": "pages/news/news-list",
 			"style": {
-				"navigationBarTitleText": "资讯列表",
-				"navigationStyle": "custom"
+				"navigationBarTitleText": "资讯列表"
 			}
 		},
 		{
@@ -88,12 +93,6 @@
 			"path": "pages/myteam/myteam",
 			"style": {
 				"navigationBarTitleText": "我的主队"
-			}
-		},
-		{
-			"path": "pages/matches/detail",
-			"style": {
-				"navigationBarTitleText": "赛事详情"
 			}
 		}
 	],

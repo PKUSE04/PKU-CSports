@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { comparePassword } = require('../utils/password');
 const db = require('../config/db'); // Import the database connection pool
+const { hashPassword } = require('../utils/password');
 
 /**
  * Handles user login verification by querying the database.
@@ -46,6 +47,44 @@ exports.loginUser = async (username, password) => {
     throw new Error('Error during login process.');
   } finally {
     // 6. Release the client back to the pool
+    if (client) {
+      client.release();
+    }
+  }
+};
+
+exports.registerUser = async (username, password) => {
+  let client;
+  try {
+    client = await db.connect();
+
+    // Check if username already exists
+    const exists = await client.query('SELECT id FROM users WHERE username = $1', [username]);
+    if (exists.rows.length > 0) {
+      return { success: false, message: '用户名已存在' };
+    }
+
+    // Hash password and insert new user
+    const hashed = await hashPassword(password);
+    const insertRes = await client.query(
+      `INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING *`,
+      [username, hashed, 'user']
+    );
+    const user = insertRes.rows[0];
+
+    // Generate token
+    const payload = { id: user.id, username: user.username, role: user.role };
+    const secret = process.env.JWT_SECRET || 'your_jwt_secret';
+    const token = jwt.sign(payload, secret, { expiresIn: '1h' });
+
+    const userToReturn = { ...user };
+    delete userToReturn.password;
+
+    return { success: true, token, user: userToReturn };
+  } catch (error) {
+    console.error('Register Service Error:', error);
+    throw new Error('Error during register process.');
+  } finally {
     if (client) {
       client.release();
     }

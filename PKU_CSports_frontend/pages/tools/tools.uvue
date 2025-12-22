@@ -54,13 +54,13 @@ export default {
 	computed: {
 		canPublish() {
 			return this.userRole === 'association' || this.userRole === 'admin'
-	//	}
-	//},
+		}
+	},
 	//onShow() {
 	//	const info = uni.getStorageSync('userInfo') || {}
 	//	this.userRole = info.role || 'user'
-		},
-	},
+	//	},
+	//},
 	methods: {
 		switchToolTab(index) {
 			this.currentToolTab = index;

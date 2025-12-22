@@ -1,0 +1,324 @@
+<template>
+  <view class="container">
+    <view class="card">
+      <text class="title">更新赛事 - {{ matchId }}</text>
+      <view class="form-row">
+        <text>主队比分</text>
+        <input v-model="scoreHome" type="number" class="score-input" />
+        <text>客队比分</text>
+        <input v-model="scoreAway" type="number" class="score-input" />
+      </view>
+      <text class="section-title">主队 首发</text>
+      <view class="rows">
+        <view class="row-item" v-for="(r, idx) in homeStarters" :key="'hs-'+idx">
+          <input v-model="r.number" class="num-input" placeholder="号" />
+          <picker mode="selector" :range="homePlayerNames" @change="onPickerChange('home','starters', idx, $event)">
+            <view class="picker-display">{{ homePlayerNames[r.playerIndex] || '选择球员' }}</view>
+          </picker>
+          <button class="small" @click="removeRow('home','starters', idx)">删除</button>
+        </view>
+        <button class="add" @click="addRow('home','starters')">添加首发</button>
+      </view>
+
+      <text class="section-title">主队 替补</text>
+      <view class="rows">
+        <view class="row-item" v-for="(r, idx) in homeBench" :key="'hb-'+idx">
+          <input v-model="r.number" class="num-input" placeholder="号" />
+          <picker mode="selector" :range="homePlayerNames" @change="onPickerChange('home','bench', idx, $event)">
+            <view class="picker-display">{{ homePlayerNames[r.playerIndex] || '选择球员' }}</view>
+          </picker>
+          <button class="small" @click="removeRow('home','bench', idx)">删除</button>
+        </view>
+        <button class="add" @click="addRow('home','bench')">添加替补</button>
+      </view>
+
+      <text class="section-title">客队 首发</text>
+      <view class="rows">
+        <view class="row-item" v-for="(r, idx) in awayStarters" :key="'as-'+idx">
+          <input v-model="r.number" class="num-input" placeholder="号" />
+          <picker mode="selector" :range="awayPlayerNames" @change="onPickerChange('away','starters', idx, $event)">
+            <view class="picker-display">{{ awayPlayerNames[r.playerIndex] || '选择球员' }}</view>
+          </picker>
+          <button class="small" @click="removeRow('away','starters', idx)">删除</button>
+        </view>
+        <button class="add" @click="addRow('away','starters')">添加首发</button>
+      </view>
+
+      <text class="section-title">客队 替补</text>
+      <view class="rows">
+        <view class="row-item" v-for="(r, idx) in awayBench" :key="'ab-'+idx">
+          <input v-model="r.number" class="num-input" placeholder="号" />
+          <picker mode="selector" :range="awayPlayerNames" @change="onPickerChange('away','bench', idx, $event)">
+            <view class="picker-display">{{ awayPlayerNames[r.playerIndex] || '选择球员' }}</view>
+          </picker>
+          <button class="small" @click="removeRow('away','bench', idx)">删除</button>
+        </view>
+        <button class="add" @click="addRow('away','bench')">添加替补</button>
+      </view>
+
+      <view class="actions">
+        <button class="btn" :disabled="loading" @click="submitUpdate">{{ loading ? '保存中...' : '保存更新' }}</button>
+        <button class="btn ghost" @click="cancel">取消</button>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+import { get, patch, post, request as apiRequest } from '@/utils/request.js'
+export default {
+  data() {
+    return {
+      matchId: '',
+      scoreHome: '',
+      scoreAway: '',
+      // structured rows: { number: '', playerIndex: -1 }
+      homeStarters: [],
+      homeBench: [],
+      awayStarters: [],
+      awayBench: [],
+      // players lists
+      homePlayers: [],
+      awayPlayers: [],
+      // map of original lineup by player_id -> { side, is_starter }
+      origLineupMap: {},
+      loading: false
+    }
+  },
+  onLoad(options) {
+    if (options.matchId) this.matchId = options.matchId
+    this.fetchMatch()
+  },
+  methods: {
+    async fetchMatch() {
+      try {
+        const res = await get(`/api/matches/${this.matchId}`)
+        if (!res.data.success) return
+        const m = res.data.data || {}
+        this.scoreHome = m.score_home ?? ''
+        this.scoreAway = m.score_away ?? ''
+        const starters = m.lineup?.starters || []
+        const bench = m.lineup?.bench || []
+        const homeStartersArr = starters.filter(p => p.side === 'home')
+        const awayStartersArr = starters.filter(p => p.side === 'away')
+        const homeBenchArr = bench.filter(p => p.side === 'home')
+        const awayBenchArr = bench.filter(p => p.side === 'away')
+
+        // fetch team players to populate selectors
+        const homeTeamId = m.home_team_id || m.homeTeamId || null
+        const awayTeamId = m.away_team_id || m.awayTeamId || null
+        if (homeTeamId) await this.fetchTeamPlayers(homeTeamId, 'home')
+        if (awayTeamId) await this.fetchTeamPlayers(awayTeamId, 'away')
+
+        // build original lineup map for diffing (player_id -> {side,is_starter})
+        const origMap = {}
+        starters.forEach(p => {
+          const pid = p.player_id || p.id
+          if (pid) origMap[String(pid)] = { side: p.side, is_starter: true }
+        })
+        bench.forEach(p => {
+          const pid = p.player_id || p.id
+          if (pid) origMap[String(pid)] = { side: p.side, is_starter: false }
+        })
+        this.origLineupMap = origMap
+        const mapToRows = (arr, playersList) => arr.map(p => {
+          // try to find player index by id or name
+          const idx = playersList.findIndex(x => String(x.id) === String(p.player_id || p.id) || x.name === p.name)
+          return { number: p.number || '', playerIndex: idx >= 0 ? idx : -1, rawName: p.name || '', origPlayerId: p.player_id || p.id }
+        })
+
+        this.homeStarters = mapToRows(homeStartersArr, this.homePlayers)
+        this.awayStarters = mapToRows(awayStartersArr, this.awayPlayers)
+        this.homeBench = mapToRows(homeBenchArr, this.homePlayers)
+        this.awayBench = mapToRows(awayBenchArr, this.awayPlayers)
+      } catch (e) {
+        console.warn('fetch match for update failed', e)
+      }
+    },
+    parseLines(text, side) {
+      return (text || '').split('\n').map(line => line.trim()).filter(l => l).map(l => {
+        const parts = l.split(',')
+        return { side, number: parts[0] ? parts[0].trim() : '', name: parts[1] ? parts[1].trim() : '' }
+      })
+    },
+    // new helpers for selector-based rows
+    async fetchTeamPlayers(teamId, side) {
+      try {
+        const res = await get(`/api/teams/${teamId}/players`)
+        const list = (res.data && res.data.data) || []
+        if (side === 'home') this.homePlayers = list
+        else this.awayPlayers = list
+      } catch (e) {
+        // try alternative endpoint
+        try {
+          const res2 = await get(`/api/teams/${teamId}/members`)
+          const list2 = (res2.data && res2.data.data) || []
+          if (side === 'home') this.homePlayers = list2
+          else this.awayPlayers = list2
+        } catch (e2) {
+          console.warn('fetch team players failed', e, e2)
+          if (side === 'home') this.homePlayers = []
+          else this.awayPlayers = []
+        }
+      }
+    },
+
+    onPickerChange(side, type, idx, e) {
+      const selected = Number(e.detail.value)
+      if (side === 'home') {
+        if (type === 'starters') this.homeStarters[idx].playerIndex = selected
+        else this.homeBench[idx].playerIndex = selected
+      } else {
+        if (type === 'starters') this.awayStarters[idx].playerIndex = selected
+        else this.awayBench[idx].playerIndex = selected
+      }
+    },
+
+    addRow(side, type) {
+      const row = { number: '', playerIndex: -1 }
+      if (side === 'home') {
+        if (type === 'starters') this.homeStarters.push(row)
+        else this.homeBench.push(row)
+      } else {
+        if (type === 'starters') this.awayStarters.push(row)
+        else this.awayBench.push(row)
+      }
+    },
+
+    removeRow(side, type, idx) {
+      if (side === 'home') {
+        if (type === 'starters') this.homeStarters.splice(idx,1)
+        else this.homeBench.splice(idx,1)
+      } else {
+        if (type === 'starters') this.awayStarters.splice(idx,1)
+        else this.awayBench.splice(idx,1)
+      }
+    },
+
+    playerNames(list) {
+      return (list || []).map(p => p.name || (p.username || ''))
+    },
+
+    async submitUpdate() {
+      this.loading = true
+      this.error = ''
+      try {
+        // Build current lineup map from rows (player_id -> {side,is_starter})
+        const currentMap = {}
+        const pushRowToMap = (r, players, side, isStarter) => {
+          const player = (players && players[r.playerIndex]) || null
+          const pid = player ? player.id : (r.origPlayerId || null)
+          if (pid) currentMap[String(pid)] = { side, is_starter: !!isStarter }
+        }
+
+        this.homeStarters.forEach(r => pushRowToMap(r, this.homePlayers, 'home', true))
+        this.homeBench.forEach(r => pushRowToMap(r, this.homePlayers, 'home', false))
+        this.awayStarters.forEach(r => pushRowToMap(r, this.awayPlayers, 'away', true))
+        this.awayBench.forEach(r => pushRowToMap(r, this.awayPlayers, 'away', false))
+
+        // compute additions, updates and deletions
+        const adds = []
+        const updates = []
+        const deletes = []
+
+        // additions and updates
+        Object.keys(currentMap).forEach(pid => {
+          const cur = currentMap[pid]
+          const orig = this.origLineupMap ? this.origLineupMap[String(pid)] : undefined
+          if (!orig) {
+            // new item -> POST /api/matches/:id/lineup/item
+            adds.push({ player_id: Number(pid), side: cur.side, is_starter: cur.is_starter })
+          } else {
+            // exists -> compare
+            if (cur.side !== orig.side || cur.is_starter !== orig.is_starter) {
+              updates.push({ player_id: Number(pid), body: { side: cur.side, is_starter: cur.is_starter } })
+            }
+          }
+        })
+
+        // deletions: in original but not in current
+        Object.keys(this.origLineupMap || {}).forEach(pid => {
+          if (!currentMap[String(pid)]) deletes.push(Number(pid))
+        })
+
+        // execute additions
+        for (const a of adds) {
+          try {
+            await post(`/api/matches/${this.matchId}/lineup/item`, a)
+          } catch (e) {
+            console.warn('add lineup item failed', a, e)
+          }
+        }
+
+        // execute updates
+        for (const u of updates) {
+          try {
+            await patch(`/api/matches/${this.matchId}/lineup/${u.player_id}`, u.body)
+          } catch (e) {
+            console.warn('update lineup item failed', u, e)
+          }
+        }
+
+        // execute deletes
+        for (const pid of deletes) {
+          try {
+            await apiRequest({ url: `/api/matches/${this.matchId}/lineup/${pid}`, method: 'DELETE' })
+          } catch (e) {
+            console.warn('delete lineup item failed', pid, e)
+          }
+        }
+
+        // submit scores via result endpoint if provided
+        const homeNum = this.scoreHome === '' ? null : Number(this.scoreHome)
+        const awayNum = this.scoreAway === '' ? null : Number(this.scoreAway)
+        if (homeNum !== null || awayNum !== null) {
+          const body = {}
+          if (homeNum !== null) body.score_home = homeNum
+          if (awayNum !== null) body.score_away = awayNum
+          // set status to '已结束' when both scores provided
+          if (homeNum !== null && awayNum !== null) body.status = '已结束'
+          try {
+            await post(`/api/matches/${this.matchId}/result`, body)
+          } catch (e) {
+            console.warn('submit match result failed', e)
+            // show error but continue
+            uni.showToast({ title: '比分提交失败', icon: 'none' })
+            this.loading = false
+            return
+          }
+        }
+
+        uni.showToast({ title: '更新成功', icon: 'success' })
+        setTimeout(() => uni.navigateBack(), 600)
+      } catch (e) {
+        console.error('submit update failed', e)
+        uni.showToast({ title: '请求失败', icon: 'none' })
+      } finally {
+        this.loading = false
+      }
+    },
+    cancel() {
+      uni.navigateBack()
+    }
+  }
+}
+</script>
+
+<style>
+.container { padding: 12px; background: #f5f6fa; min-height: 100vh; }
+.card { background:#fff; border-radius:12px; padding:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05); }
+.title { font-weight:700; margin-bottom:8px }
+.form-row { display:flex; align-items:center; gap:8px; margin-bottom:10px }
+.score-input { width:60px; padding:6px; border:1px solid #eee; border-radius:6px }
+.section-title { margin-top:8px; font-weight:600; margin-bottom:6px }
+.rows { margin-bottom:8px }
+.row-item { display:flex; align-items:center; gap:8px; margin-bottom:6px }
+.num-input { width:72px; padding:6px; border:1px solid #eee; border-radius:6px }
+.picker-display { padding:8px; border:1px solid #eee; border-radius:6px; min-width:140px }
+.small { background:#f56c6c; color:#fff; padding:6px 8px; border-radius:6px }
+.add { margin-top:6px; background:#67c23a; color:#fff; padding:6px 8px; border-radius:6px }
+.json-area { width:100%; min-height:80px; border:1px solid #eee; border-radius:8px; padding:8px; resize:none }
+.actions { display:flex; gap:8px; margin-top:12px }
+.btn { background:#409eff; color:#fff; padding:8px 12px; border-radius:8px }
+.btn.ghost { background:transparent; color:#333; border:1px solid #eee }
+</style>

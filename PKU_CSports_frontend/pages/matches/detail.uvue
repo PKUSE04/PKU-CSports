@@ -3,7 +3,10 @@
 		<view class="card">
 			<view class="row space">
 				<text class="date">{{ match.date }} {{ match.time }}</text>
-				<text class="status" :class="statusClass">{{ match.status }}</text>
+				<view style="display:flex; align-items:center; gap:8px;">
+					<text class="status" :class="statusClass">{{ match.status }}</text>
+					<button v-if="canEdit" class="update-btn" @click="goUpdate">更新</button>
+				</view>
 			</view>
 			<view class="teams">
 				<view class="team" @click="goTeam(match.home.id)">
@@ -73,10 +76,14 @@ export default {
 				score: { home: '', away: '' },
 				home: { id: '', name: '', logo: '/static/logo.png', starters: [], bench: [] },
 				away: { id: '', name: '', logo: '/static/logo.png', starters: [], bench: [] }
+			},
+			userRole: 'user'
 			}
-		}
 	},
 	computed: {
+		canEdit() {
+			return this.userRole === 'association' || this.userRole === 'admin'
+		},
 		statusClass() {
 			if (this.match.status === '直播中') return 'live'
 			if ((this.match.status || '').indexOf('结束') > -1) return 'done'
@@ -86,6 +93,8 @@ export default {
 	onLoad(options) {
 		if (options.id) this.match.id = options.id
 		this.fetchDetail()
+		const info = uni.getStorageSync('userInfo') || {}
+		this.userRole = info.role || 'user'
 	},
 	methods: {
 		async fetchDetail() {
@@ -124,6 +133,10 @@ export default {
 		},
 		goPlayer(p) {
 			uni.showToast({ title: `查看球员 ${p.name}`, icon: 'none' })
+		}
+		,
+		goUpdate() {
+			uni.navigateTo({ url: '/pages/matches/update?matchId=' + this.match.id })
 		}
 	}
 }
