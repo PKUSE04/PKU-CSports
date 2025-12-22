@@ -99,6 +99,7 @@ export default {
 /* 顶部导航 Tab 样式 */
 .tool-tabs {
 	display: flex;
+	flex-direction: row;
 	background-color: #fff;
 	padding: 5px 10px;
 	border-radius: 8px;

@@ -52,9 +52,9 @@
 			</view>
 		</view>
 
-		<!-- 我的主队 -->
+		<!-- 资讯动态 -->
 		<view class="more-info" @click="goToMyTeam">
-			<text class="section-title">我的主队</text>
+			<text class="section-title">资讯动态</text>
 			<text class="more-text">查看全部 ></text>
 		</view>
 
@@ -81,7 +81,7 @@ export default {
 
 	methods: {
 		goToMyTeam() {
-			uni.navigateTo({ url: '/pages/myteam/myteam' })
+			uni.navigateTo({ url: '/pages/news/news-list' })
 		},
 		goToNewsList(type) {
 			uni.navigateTo({
