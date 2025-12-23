@@ -2,6 +2,26 @@
 	<view class="container">
 		<view class="news-title">{{ news.title }}</view>
 		<view class="news-content">{{ news.content }}</view>
+		<view v-if="(news.media || []).length" class="media-box">
+			<view
+				v-for="(m, idx) in news.media"
+				:key="idx"
+				class="media-item"
+			>
+				<image
+					v-if="m.type === 'image'"
+					:src="m.url || m.path"
+					mode="widthFix"
+					class="media-img"
+				/>
+				<video
+					v-else-if="m.type === 'video'"
+					:src="m.url || m.path"
+					controls
+					class="media-video"
+				/>
+			</view>
+		</view>
 
 		<view class="comments-section">
 			<view class="comments-title">评论区</view>
@@ -96,6 +116,29 @@ export default {
 	font-size: 15px;
 	color: #333;
 	margin-bottom: 20px;
+}
+.media-box {
+	background: #fff;
+	border-radius: 12px;
+	padding: 10px;
+	margin-bottom: 16px;
+	box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+.media-item {
+	border-radius: 10px;
+	overflow: hidden;
+}
+.media-img {
+	width: 100%;
+	border-radius: 10px;
+	background: #f5f7fa;
+}
+.media-video {
+	width: 100%;
+	border-radius: 10px;
 }
 .comments-section {
 	background: #fff;

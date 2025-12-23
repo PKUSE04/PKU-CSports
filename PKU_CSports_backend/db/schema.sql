@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS posts (
   type VARCHAR(20) DEFAULT 'post', -- flash/report/post
   tags TEXT[] DEFAULT ARRAY[]::TEXT[],
   cover TEXT,
+  media JSONB DEFAULT '[]'::JSONB, -- 多媒体内容数组: [{"type": "image", "url": "..."}, {"type": "video", "url": "..."}]
   author_id INTEGER REFERENCES users(id),
   status VARCHAR(20) DEFAULT 'published',
   created_at TIMESTAMP DEFAULT NOW(),
@@ -106,5 +107,6 @@ CREATE TABLE IF NOT EXISTS comments (
 -- 简单索引
 CREATE INDEX IF NOT EXISTS idx_posts_type ON posts(type);
 CREATE INDEX IF NOT EXISTS idx_posts_tags ON posts USING GIN(tags);
+CREATE INDEX IF NOT EXISTS idx_posts_media ON posts USING GIN(media);
 CREATE INDEX IF NOT EXISTS idx_matches_status ON matches(status);
 

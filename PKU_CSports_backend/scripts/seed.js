@@ -80,12 +80,12 @@ async function seed() {
         ('新生杯',5,4,1)`
     );
 
-    // 示例帖子/资讯
+    // 示例帖子/资讯（包含 media 字段）
     await client.query(
-      `INSERT INTO posts (title, content, type, tags, author_id, status) VALUES
-        ('信工开局强势，禁区爆射破门！','比赛刚开场即破门，士气高涨','flash', ARRAY['热门','进球'], 2, 'published'),
-        ('信工 4-2 元社联队 战报','双方对攻，信工收获关键胜利','report', ARRAY['战报','新生杯'], 2, 'published'),
-        ('训练日志','周末加练，准备下一场硬仗','post', ARRAY['训练'], 2, 'published')
+      `INSERT INTO posts (title, content, type, tags, media, author_id, status) VALUES
+        ('信工开局强势，禁区爆射破门！','比赛刚开场即破门，士气高涨','flash', ARRAY['热门','进球'], '[]'::JSONB, 2, 'published'),
+        ('信工 4-2 元社联队 战报','双方对攻，信工收获关键胜利','report', ARRAY['战报','新生杯'], '[]'::JSONB, 2, 'published'),
+        ('训练日志','周末加练，准备下一场硬仗','post', ARRAY['训练'], '[]'::JSONB, 2, 'published')
       `
     );
 
