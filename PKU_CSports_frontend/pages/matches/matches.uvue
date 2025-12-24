@@ -56,9 +56,7 @@ export default {
 	computed: {
 		canPublish() {
 			return this.userRole === 'association' || this.userRole === 'admin'
-		}
-	},
-	computed: {
+		},
 		filteredMatches() {
 			if (this.activeTag === '全部') return this.matches
 			if (this.activeTag === '直播') return this.matches.filter(m => m.status === '直播中')
