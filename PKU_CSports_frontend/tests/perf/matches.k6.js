@@ -10,7 +10,7 @@ export const options = {
 }
 
 export default function () {
-  const res = http.get('http://localhost:3000/api/matches?pageSize=20')
+  const res = http.get('http://10.129.82.168:3000/api/matches?pageSize=20')
   check(res, {
     'status 200': r => r.status === 200,
     'has home_team_name': r => r.body.includes('home_team_name')

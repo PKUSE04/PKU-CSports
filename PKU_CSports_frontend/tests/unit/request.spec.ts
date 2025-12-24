@@ -18,7 +18,7 @@ describe('utils/request', () => {
     await request({ url: '/api/test', method: 'GET' })
     expect(uni.request).toHaveBeenCalledTimes(1)
     const call = uni.request.mock.calls[0][0]
-    expect(call.url).toBe('http://localhost:3000/api/test')
+    expect(call.url).toBe('http://10.129.82.168:3000/api/test')
     expect(call.header.Authorization).toBe('Bearer token-123')
   })
 })
