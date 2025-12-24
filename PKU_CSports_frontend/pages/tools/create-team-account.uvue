@@ -1,0 +1,226 @@
+<template>
+	<view class="container">
+		<view class="header">
+			<text class="title">创建队伍账号</text>
+		</view>
+		
+		<view class="form-section">
+			<view class="form-item">
+				<text class="label">选择队伍 *</text>
+				<picker mode="selector" :range="teamOptions" range-key="name" :value="selectedTeamIndex" @change="onTeamChange">
+					<view class="picker">
+						<text>{{ selectedTeamName || '请选择队伍' }}</text>
+						<text class="picker-arrow">></text>
+					</view>
+				</picker>
+			</view>
+			
+			<view class="form-item">
+				<text class="label">账号用户名 *</text>
+				<input v-model="formData.username" placeholder="请输入用户名" class="input" />
+			</view>
+			
+			<view class="form-item">
+				<text class="label">账号密码 *</text>
+				<input v-model="formData.password" type="password" placeholder="请输入密码" class="input" />
+			</view>
+			
+			<view class="form-item">
+				<text class="label">确认密码 *</text>
+				<input v-model="formData.confirmPassword" type="password" placeholder="请再次输入密码" class="input" />
+			</view>
+		</view>
+		
+		<view class="info-section">
+			<text class="info-text">提示：每个队伍只能创建一个官方账号，创建后该账号将作为该队伍的官方账号。</text>
+		</view>
+		
+		<button class="submit-btn" @click="submit" :loading="submitting">创建</button>
+	</view>
+</template>
+
+<script>
+import { get, post } from '@/utils/request.js'
+
+export default {
+	data() {
+		return {
+			teams: [],
+			selectedTeamIndex: 0,
+			formData: {
+				team_id: null,
+				username: '',
+				password: '',
+				confirmPassword: ''
+			},
+			submitting: false
+		}
+	},
+	computed: {
+		teamOptions() {
+			return this.teams
+		},
+		selectedTeamName() {
+			if (!this.formData.team_id) {
+				return '请选择队伍'
+			}
+			const team = this.teams.find(t => t.id === this.formData.team_id)
+			return team ? team.name : '请选择队伍'
+		}
+	},
+	onLoad() {
+		this.fetchTeams()
+	},
+	methods: {
+		async fetchTeams() {
+			try {
+				const res = await get('/api/teams')
+				if (res.data.success) {
+					this.teams = res.data.data || []
+				}
+			} catch (e) {
+				console.error('fetch teams error', e)
+				uni.showToast({ title: '获取队伍列表失败', icon: 'none' })
+			}
+		},
+		onTeamChange(e) {
+			const index = parseInt(e.detail.value)
+			this.formData.team_id = this.teams[index].id
+		},
+		async submit() {
+			// 验证
+			if (!this.formData.team_id) {
+				uni.showToast({ title: '请选择队伍', icon: 'none' })
+				return
+			}
+			if (!this.formData.username) {
+				uni.showToast({ title: '请输入用户名', icon: 'none' })
+				return
+			}
+			if (!this.formData.password) {
+				uni.showToast({ title: '请输入密码', icon: 'none' })
+				return
+			}
+			if (this.formData.password !== this.formData.confirmPassword) {
+				uni.showToast({ title: '两次密码输入不一致', icon: 'none' })
+				return
+			}
+			if (this.formData.password.length < 6) {
+				uni.showToast({ title: '密码长度至少6位', icon: 'none' })
+				return
+			}
+			
+			this.submitting = true
+			try {
+				const res = await post('/api/teams/accounts', {
+					team_id: this.formData.team_id,
+					username: this.formData.username,
+					password: this.formData.password
+				})
+				
+				if (res.data.success) {
+					uni.showToast({ title: '创建成功', icon: 'success' })
+					setTimeout(() => {
+						uni.navigateBack()
+					}, 1000)
+				} else {
+					uni.showToast({ title: res.data.message || '创建失败', icon: 'none' })
+				}
+			} catch (e) {
+				console.error('create team account error', e)
+				uni.showToast({ title: '创建失败', icon: 'none' })
+			} finally {
+				this.submitting = false
+			}
+		}
+	}
+}
+</script>
+
+<style>
+.container {
+	background-color: #f8f8f8;
+	min-height: 100vh;
+	padding: 20px;
+}
+
+.header {
+	margin-bottom: 20px;
+}
+
+.title {
+	font-size: 24px;
+	font-weight: bold;
+	color: #333;
+}
+
+.form-section {
+	background: #fff;
+	border-radius: 10px;
+	padding: 20px;
+	margin-bottom: 20px;
+}
+
+.form-item {
+	margin-bottom: 20px;
+}
+
+.form-item:last-child {
+	margin-bottom: 0;
+}
+
+.label {
+	font-size: 15px;
+	color: #333;
+	margin-bottom: 10px;
+	display: block;
+}
+
+.input {
+	width: 100%;
+	padding: 12px;
+	border: 1px solid #eee;
+	border-radius: 8px;
+	font-size: 14px;
+	color: #333;
+}
+
+.picker {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 12px;
+	border: 1px solid #eee;
+	border-radius: 8px;
+	background: #fff;
+}
+
+.picker-arrow {
+	color: #999;
+	font-size: 16px;
+}
+
+.info-section {
+	background: #fff3cd;
+	border-radius: 8px;
+	padding: 12px;
+	margin-bottom: 20px;
+}
+
+.info-text {
+	font-size: 13px;
+	color: #856404;
+	line-height: 1.6;
+}
+
+.submit-btn {
+	width: 100%;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: #fff;
+	padding: 14px;
+	border-radius: 8px;
+	font-size: 16px;
+	font-weight: bold;
+}
+</style>
+

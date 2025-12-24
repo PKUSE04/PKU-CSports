@@ -1,3 +1,4 @@
+require('dotenv').config(); 
 const { Pool } = require('pg');
 
 // IMPORTANT: Replace with your actual PostgreSQL credentials.
@@ -5,8 +6,8 @@ const { Pool } = require('pg');
 const pool = new Pool({
   host: process.env.PG_HOST || 'localhost',
   user: process.env.PG_USER || 'postgres',
-  password: process.env.PG_PASSWORD || 'huajinaiqing0063', // <-- 修改为你的 PostgreSQL 密码
-  database: process.env.PG_DATABASE || 'csports_db',       // <-- 修改为你的数据库名
+  password: process.env.PG_PASSWORD || '', // 请使用环境变量 PG_PASSWORD
+  database: process.env.PG_DATABASE || 'csports_db',
   port: process.env.PG_PORT ? parseInt(process.env.PG_PORT) : 5432,
   max: 30, // 增加连接池大小以支持高并发
   idleTimeoutMillis: 30000,

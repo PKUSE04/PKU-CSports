@@ -1,5 +1,10 @@
 <template>
 	<view class="container">
+		<!-- 自定义顶部导航栏 -->
+		<view class="nav-bar">
+		    <view class="nav-bar-status"></view>
+		    <view class="nav-bar-title">工具栏</view>
+		</view>
 		<TopRightIcon />
 		<!-- 顶部导航 Tab -->
 		<view class="tool-tabs">
@@ -12,6 +17,7 @@
 		<!-- 发布按钮（仅协会/管理员） -->
 		<view class="header-actions" v-if="canPublish">
 			<button class="publish-btn" @click="goToCreatePost">发布</button>
+			<button class="create-account-btn" @click="goToCreateTeamAccount">创建队伍账号</button>
 		</view>
 
 		<!-- 战术板/阵容模拟器入口 -->
@@ -80,6 +86,14 @@ export default {
 			}
 			// 跳转到创建帖子/发布页面
 			uni.navigateTo({ url: '/pages/createPost/createPost' });
+		},
+		goToCreateTeamAccount() {
+			if (!this.canPublish) {
+				uni.showToast({ title: '仅协会方/管理员可创建', icon: 'none' })
+				return
+			}
+			// 跳转到创建队伍账号页面
+			uni.navigateTo({ url: '/pages/tools/create-team-account' });
 		}
 	},
 	onShow() {
@@ -96,6 +110,16 @@ export default {
 	min-height: 100vh;
 	padding: 10px;
 }
+.nav-bar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 18px 16px 8px 16px;
+	background: #fff;
+	font-size: 20px;
+	font-weight: bold;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
 /* 顶部导航 Tab 样式 */
 .tool-tabs {
 	display: flex;
@@ -106,7 +130,7 @@ export default {
 	margin-bottom: 15px;
 	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
-.tool-tabs .tab-item {
+.tool-tabs .tab-item { 
 	flex: 1;
 	text-align: center;
 	padding: 8px 0;
@@ -172,10 +196,12 @@ export default {
 /* 发布按钮样式 */
 .header-actions {
 	display:flex;
-	justify-content:flex-end;
+	flex-direction: row;
+	align-items: center;
 	margin-bottom:12px;
 }
-.publish-btn {
+.publish-btn,
+.create-account-btn{
 	background: linear-gradient(135deg,#667eea 0%,#764ba2 100%);
 	color:#fff;
 	padding:8px 14px;

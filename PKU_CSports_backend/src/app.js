@@ -1,15 +1,30 @@
 const express = require('express');
+const path = require('path');
 const authRoutes = require('./api/auth');
 const newsRoutes = require('./api/news');
 const matchRoutes = require('./api/matches');
 const standingRoutes = require('./api/standings');
 const commentRoutes = require('./api/comments');
+const uploadRoutes = require('./api/upload');
+const userRoutes = require('./api/users');
+const teamRoutes = require('./api/teams');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// CORS 中间件（需要在路由之前）
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Headers', '*')
+  res.header('Access-Control-Allow-Methods', '*')
+  next()
+})
+
 // Middleware to parse JSON bodies
 app.use(express.json());
+
+// 静态文件服务：提供上传文件的访问
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Mount the authentication routes
 app.use('/api/auth', authRoutes);
@@ -17,13 +32,9 @@ app.use('/api/news', newsRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/standings', standingRoutes);
 app.use('/api/comments', commentRoutes);
-
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*')
-  res.header('Access-Control-Allow-Headers', '*')
-  res.header('Access-Control-Allow-Methods', '*')
-  next()
-})
+app.use('/api/upload', uploadRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/teams', teamRoutes);
 
 // A simple welcome route
 app.get('/', (req, res) => {

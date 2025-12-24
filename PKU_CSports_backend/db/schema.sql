@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS posts (
   type VARCHAR(20) DEFAULT 'post', -- flash/report/post
   tags TEXT[] DEFAULT ARRAY[]::TEXT[],
   cover TEXT,
+  media JSONB DEFAULT '[]'::JSONB, -- 多媒体内容数组: [{"type": "image", "url": "..."}, {"type": "video", "url": "..."}]
   author_id INTEGER REFERENCES users(id),
   status VARCHAR(20) DEFAULT 'published',
   created_at TIMESTAMP DEFAULT NOW(),
@@ -103,8 +104,54 @@ CREATE TABLE IF NOT EXISTS comments (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+-- 关注表
+CREATE TABLE IF NOT EXISTS follows (
+  id SERIAL PRIMARY KEY,
+  follower_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  following_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(follower_id, following_id)
+);
+
+-- 收藏表
+CREATE TABLE IF NOT EXISTS favorites (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, post_id)
+);
+
+-- 点赞表
+CREATE TABLE IF NOT EXISTS likes (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, post_id)
+);
+
+-- 队伍账号关联表（队伍官方账号）
+CREATE TABLE IF NOT EXISTS team_accounts (
+  id SERIAL PRIMARY KEY,
+  team_id INTEGER REFERENCES teams(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(team_id, user_id)
+);
+
 -- 简单索引
 CREATE INDEX IF NOT EXISTS idx_posts_type ON posts(type);
 CREATE INDEX IF NOT EXISTS idx_posts_tags ON posts USING GIN(tags);
+CREATE INDEX IF NOT EXISTS idx_posts_media ON posts USING GIN(media);
 CREATE INDEX IF NOT EXISTS idx_matches_status ON matches(status);
+CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows(follower_id);
+CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(following_id);
+CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id);
+CREATE INDEX IF NOT EXISTS idx_favorites_post ON favorites(post_id);
+CREATE INDEX IF NOT EXISTS idx_likes_user ON likes(user_id);
+CREATE INDEX IF NOT EXISTS idx_likes_post ON likes(post_id);
+CREATE INDEX IF NOT EXISTS idx_team_accounts_team ON team_accounts(team_id);
+CREATE INDEX IF NOT EXISTS idx_team_accounts_user ON team_accounts(user_id);
 
