@@ -21,7 +21,46 @@ export function request(options) {
             preview: res.data.slice(0, 200)
           });
           uni.showToast({ title: '接口返回异常(非JSON)', icon: 'none' });
+          resolve(res);
+          return;
         }
+        
+        // 处理 401 未授权错误（token 过期或无效）
+        if (res.statusCode === 401) {
+          const errorMsg = res.data?.message || '登录已过期，请重新登录';
+          console.warn('Token 过期或无效:', errorMsg);
+          
+          // 清除本地存储的 token 和用户信息
+          uni.removeStorageSync('token');
+          uni.removeStorageSync('userInfo');
+          
+          // 显示提示并跳转到登录页
+          uni.showToast({
+            title: errorMsg,
+            icon: 'none',
+            duration: 2000
+          });
+          
+          // 延迟跳转，让用户看到提示
+          setTimeout(() => {
+            // 检查当前页面是否是登录页，避免重复跳转
+            try {
+              const pages = getCurrentPages();
+              const currentPage = pages[pages.length - 1];
+              if (currentPage && !currentPage.route.includes('login')) {
+                uni.reLaunch({
+                  url: '/pages/login/login'
+                });
+              }
+            } catch (e) {
+              // 如果获取页面失败，直接跳转
+              uni.reLaunch({
+                url: '/pages/login/login'
+              });
+            }
+          }, 2000);
+        }
+        
         resolve(res);
       },
       fail: (err) => {

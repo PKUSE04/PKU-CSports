@@ -1,37 +1,36 @@
 <template>
 	<view class="container">
-		<TopRightIcon />
 		
 		<!-- 个人信息卡片 -->
 		<view class="profile-header">
-			<image src="/static/logo.png" class="avatar" />
-			<text class="username">用户名</text>
-			<text class="user-bio">这是一段个人简介</text>
+			<image :src="userInfo.avatar || '/static/logo.png'" class="avatar" @click="handleAvatarClick" />
+			<text class="username">{{ userInfo.username || '用户名' }}</text>
+			<text class="user-bio">{{ userInfo.bio || '还没有个人简介' }}</text>
 		</view>
 
 		<!-- 个人数据统计 -->
 		<view class="stats-section">
-			<view class="stat-item">
-				<text class="stat-value">0</text>
+			<view class="stat-item" @click="goToFollowings">
+				<text class="stat-value">{{ stats.follows || 0 }}</text>
 				<text class="stat-label">关注</text>
 			</view>
-			<view class="stat-item">
-				<text class="stat-value">0</text>
+			<view class="stat-item" @click="goToFollowers">
+				<text class="stat-value">{{ stats.followers || 0 }}</text>
 				<text class="stat-label">粉丝</text>
 			</view>
 			<view class="stat-item">
-				<text class="stat-value">0</text>
+				<text class="stat-value">{{ stats.posts || 0 }}</text>
 				<text class="stat-label">动态</text>
 			</view>
 		</view>
 
 		<!-- 功能菜单 -->
 		<view class="menu-section">
-			<view class="menu-item">
+			<view class="menu-item" @click="goToFavorites">
 				<text class="menu-text">我的收藏</text>
 				<text class="menu-arrow">></text>
 			</view>
-			<view class="menu-item">
+			<view class="menu-item" @click="goToSettings">
 				<text class="menu-text">设置</text>
 				<text class="menu-arrow">></text>
 			</view>
@@ -47,14 +46,83 @@
 <script>
 import CustomTabBar from '@/components/CustomTabBar.uvue'
 import TopRightIcon from '@/components/TopRightIcon.uvue'
+import { get } from '@/utils/request.js'
+
 export default {
 	components: { CustomTabBar, TopRightIcon },
 	data() {
 		return {
-			// 个人页面数据
+			userInfo: {},
+			stats: {
+				follows: 0,
+				followers: 0,
+				posts: 0,
+				favorites: 0
+			}
 		}
 	},
+	onLoad() {
+		this.fetchProfile()
+	},
+	onShow() {
+		// 从设置页面返回时刷新数据
+		this.fetchProfile()
+	},
 	methods: {
+		async fetchProfile() {
+			try {
+				const token = uni.getStorageSync('token')
+				if (!token) {
+					uni.reLaunch({ url: '/pages/login/login' })
+					return
+				}
+				
+				const res = await get('/api/users/profile')
+				
+				// 如果返回 401，说明 token 过期，request.js 已经处理了跳转
+				if (res.statusCode === 401) {
+					return
+				}
+				
+				if (res.data && res.data.success) {
+					this.userInfo = res.data.data || {}
+					this.stats = res.data.data.stats || {
+						follows: 0,
+						followers: 0,
+						posts: 0,
+						favorites: 0
+					}
+				} else {
+					console.error('fetch profile: response not success', res.data)
+					// 如果是 token 相关错误，不显示错误提示（因为已经处理了跳转）
+					if (res.data?.message && res.data.message.includes('凭证')) {
+						return
+					}
+					uni.showToast({ title: res.data?.message || '获取用户信息失败', icon: 'none' })
+				}
+			} catch (e) {
+				console.error('fetch profile error', e)
+				// 网络错误或其他错误
+				if (e.errMsg && !e.errMsg.includes('401')) {
+					uni.showToast({ title: '获取用户信息失败', icon: 'none', duration: 3000 })
+				}
+			}
+		},
+		handleAvatarClick() {
+			this.goToSettings()
+		},
+		goToSettings() {
+			uni.navigateTo({ url: '/pages/profile/settings' })
+		},
+		goToFavorites() {
+			uni.navigateTo({ url: '/pages/profile/favorites' })
+		},
+		goToFollowings() {
+			uni.navigateTo({ url: '/pages/profile/followings' })
+		},
+		goToFollowers() {
+			uni.navigateTo({ url: '/pages/profile/followers' })
+		},
 		handleLogout() {
 			uni.showModal({
 				title: '确认退出',
@@ -115,6 +183,7 @@ export default {
 
 .stats-section {
 	display: flex;
+	flex-direction: row;
 	background: #fff;
 	margin: -20px 15px 15px 15px;
 	border-radius: 10px;

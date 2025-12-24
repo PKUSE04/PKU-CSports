@@ -3,24 +3,30 @@
 		<TopRightIcon />
 		
 		<!-- 主队信息头部 -->
-		<view class="team-header">
-			<image src="/static/logo.png" class="team-logo" />
-			<text class="team-name">我的主队</text>
-			<text class="team-slogan">为你喜爱的球队加油！</text>
+		<view class="team-header" v-if="teamInfo">
+			<image :src="teamInfo.logo || '/static/logo.png'" class="team-logo" />
+			<text class="team-name">{{ teamInfo.name }}</text>
+			<text class="team-slogan" v-if="teamInfo.account">{{ teamInfo.account.bio || '为你喜爱的球队加油！' }}</text>
+			<text class="team-slogan" v-else>为你喜爱的球队加油！</text>
+		</view>
+		
+		<view v-else class="empty-team">
+			<text class="empty-text">还没有设置主队</text>
+			<button class="set-team-btn" @click="goToSettings">去设置</button>
 		</view>
 
 		<!-- 赛事信息 -->
-		<view class="section">
+		<view class="section" v-if="teamInfo && teamInfo.recent_matches && teamInfo.recent_matches.length > 0">
 			<view class="section-title">
 				<text class="title-text">近期赛事</text>
 			</view>
 			<view class="match-list">
-				<view v-for="(match, index) in matches" :key="index" class="match-item">
-					<text class="match-time">{{ match.date }} {{ match.time }}</text>
+				<view v-for="(match, index) in teamInfo.recent_matches" :key="index" class="match-item" @click="goToMatchDetail(match.id)">
+					<text class="match-time">{{ formatDateTime(match.date_time) }}</text>
 					<view class="match-info">
-						<text class="team-home">{{ match.home }}</text>
-						<text class="score">{{ match.score }}</text>
-						<text class="team-away">{{ match.away }}</text>
+						<text class="team-home">{{ match.home_team_name }}</text>
+						<text class="score">{{ formatScore(match) }}</text>
+						<text class="team-away">{{ match.away_team_name }}</text>
 					</view>
 					<text class="match-status">{{ match.status }}</text>
 				</view>
@@ -28,19 +34,20 @@
 		</view>
 
 		<!-- 主队动态 -->
-		<view class="section">
+		<view class="section" v-if="teamInfo && teamInfo.recent_posts && teamInfo.recent_posts.length > 0">
 			<view class="section-title">
 				<text class="title-text">主队动态</text>
 			</view>
 			<view class="post-list">
-				<view v-for="(post, index) in posts" :key="index" class="post-item">
+				<view v-for="(post, index) in teamInfo.recent_posts" :key="index" class="post-item" @click="goToPostDetail(post.id)">
 					<view class="post-header">
-						<image src="/static/logo.png" class="post-avatar" />
+						<image :src="post.author_avatar || '/static/logo.png'" class="post-avatar" />
 						<view class="post-info">
-							<text class="post-author">{{ post.author }}</text>
-							<text class="post-time">{{ post.time }}</text>
+							<text class="post-author">{{ post.author_name }}</text>
+							<text class="post-time">{{ formatTime(post.created_at) }}</text>
 						</view>
 					</view>
+					<text class="post-title">{{ post.title }}</text>
 					<text class="post-content">{{ post.content }}</text>
 				</view>
 			</view>
@@ -53,20 +60,76 @@
 <script>
 import CustomTabBar from '@/components/CustomTabBar.uvue'
 import TopRightIcon from '@/components/TopRightIcon.uvue'
+import { get } from '@/utils/request.js'
+
 export default {
 	components: { CustomTabBar, TopRightIcon },
 	data() {
 		return {
-			matches: [
-				{ date: '11.20', time: '14:00', home: '信科', score: 'vs', away: '元培', status: '即将开始' },
-				{ date: '11.18', time: '15:00', home: '信科', score: '2-1', away: '物院', status: '已结束' },
-				{ date: '11.15', time: '16:00', home: '光华', score: '1-1', away: '信科', status: '已结束' }
-			],
-			posts: [
-				{ author: '信科足球队', time: '2小时前', content: '备战周末比赛，全队训练中！💪' },
-				{ author: '信科足球队', time: '1天前', content: '恭喜XX同学打进精彩一球！🎉' },
-				{ author: '信科足球队', time: '3天前', content: '感谢所有球迷的支持，我们会继续努力！⚽' }
-			]
+			teamInfo: null
+		}
+	},
+	onLoad() {
+		this.fetchTeamInfo()
+	},
+	onShow() {
+		// 从设置页面返回时刷新数据
+		this.fetchTeamInfo()
+	},
+	methods: {
+		async fetchTeamInfo() {
+			try {
+				const token = uni.getStorageSync('token')
+				if (!token) {
+					return
+				}
+				
+				const res = await get('/api/teams/myteam')
+				if (res.data.success) {
+					this.teamInfo = res.data.data
+				}
+			} catch (e) {
+				console.error('fetch team info error', e)
+			}
+		},
+		goToSettings() {
+			uni.navigateTo({ url: '/pages/profile/settings' })
+		},
+		goToMatchDetail(matchId) {
+			uni.navigateTo({ url: `/pages/matches/detail?id=${matchId}` })
+		},
+		goToPostDetail(postId) {
+			uni.navigateTo({ url: `/pages/news/news-detail?id=${postId}` })
+		},
+		formatDateTime(dateTimeStr) {
+			if (!dateTimeStr) return ''
+			const date = new Date(dateTimeStr)
+			const month = String(date.getMonth() + 1).padStart(2, '0')
+			const day = String(date.getDate()).padStart(2, '0')
+			const hours = String(date.getHours()).padStart(2, '0')
+			const minutes = String(date.getMinutes()).padStart(2, '0')
+			return `${month}.${day} ${hours}:${minutes}`
+		},
+		formatScore(match) {
+			if (match.status === '未开始' || !match.score_home && !match.score_away) {
+				return 'vs'
+			}
+			return `${match.score_home || 0}-${match.score_away || 0}`
+		},
+		formatTime(timeStr) {
+			if (!timeStr) return ''
+			const date = new Date(timeStr)
+			const now = new Date()
+			const diff = now - date
+			const minutes = Math.floor(diff / 60000)
+			const hours = Math.floor(diff / 3600000)
+			const days = Math.floor(diff / 86400000)
+			
+			if (minutes < 1) return '刚刚'
+			if (minutes < 60) return `${minutes}分钟前`
+			if (hours < 24) return `${hours}小时前`
+			if (days < 7) return `${days}天前`
+			return timeStr.slice(5, 16)
 		}
 	}
 }
@@ -218,9 +281,42 @@ export default {
 	color: #999;
 }
 
+.post-title {
+	font-size: 15px;
+	font-weight: bold;
+	color: #333;
+	margin-bottom: 6px;
+}
+
 .post-content {
 	font-size: 14px;
 	color: #666;
 	line-height: 1.6;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.empty-team {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 60px 20px;
+}
+
+.empty-text {
+	font-size: 16px;
+	color: #999;
+	margin-bottom: 20px;
+}
+
+.set-team-btn {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: #fff;
+	padding: 10px 20px;
+	border-radius: 20px;
+	font-size: 14px;
 }
 </style>

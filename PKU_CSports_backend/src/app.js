@@ -6,6 +6,8 @@ const matchRoutes = require('./api/matches');
 const standingRoutes = require('./api/standings');
 const commentRoutes = require('./api/comments');
 const uploadRoutes = require('./api/upload');
+const userRoutes = require('./api/users');
+const teamRoutes = require('./api/teams');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -31,6 +33,8 @@ app.use('/api/matches', matchRoutes);
 app.use('/api/standings', standingRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/teams', teamRoutes);
 
 // A simple welcome route
 app.get('/', (req, res) => {

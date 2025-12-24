@@ -4,7 +4,7 @@
 		<!-- 顶部标题栏 -->
 		<view class="header">
 			<text class="header-title">赛事</text>
-			<view class="header-icon">⚽</view>
+			<!-- <view class="header-icon">⚽</view> -->
 		</view>
 
 		<!-- 发布赛程（仅协会/管理员可见） -->
@@ -131,13 +131,13 @@ export default {
 	font-weight: bold;
 	box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
-.header-title {
+/* .header-title {
 	font-size: 20px;
 	font-weight: bold;
 }
 .header-icon {
 	font-size: 22px;
-}
+} */
 
 .filter-bar {
 	white-space: nowrap;

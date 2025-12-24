@@ -13,25 +13,47 @@
 		</scroll-view>
 
 		<view class="list">
-			<view v-for="item in filteredList" :key="item.id" class="card" @click="goDetail(item.id)">
-				<view class="card-top">
-					<view class="badge">{{ badgeLabel(item.type) }}</view>
-					<text class="time">{{ item.time }}</text>
-				</view>
-				<text class="title">{{ item.title }}</text>
-				<view v-if="item.firstImage || item.firstVideo" class="media-preview">
-					<image
-						v-if="item.firstImage"
-						:src="item.firstImage.url || item.firstImage.path"
-						mode="aspectFill"
-						class="media-thumb"
-					/>
-					<view v-else-if="item.firstVideo" class="video-thumb">
-						<text class="video-label">视频</text>
+			<view v-for="item in filteredList" :key="item.id" class="card">
+				<view class="card-header" @click="goDetail(item.id)">
+					<view class="author-info" v-if="item.author_name">
+						<image :src="item.author_avatar || '/static/logo.png'" class="author-avatar" />
+						<text class="author-name">{{ item.author_name }}</text>
+					</view>
+					<view class="card-top">
+						<view class="badge">{{ badgeLabel(item.type) }}</view>
+						<text class="time">{{ item.time }}</text>
 					</view>
 				</view>
-				<view class="tags">
-					<text v-for="tg in item.tags" :key="tg" class="mini-tag">#{{ tg }}</text>
+				<view @click="goDetail(item.id)">
+					<text class="title">{{ item.title }}</text>
+					<view v-if="item.firstImage || item.firstVideo" class="media-preview">
+						<image
+							v-if="item.firstImage"
+							:src="item.firstImage.url || item.firstImage.path"
+							mode="aspectFill"
+							class="media-thumb"
+						/>
+						<view v-else-if="item.firstVideo" class="video-thumb">
+							<text class="video-label">视频</text>
+						</view>
+					</view>
+					<view class="tags">
+						<text v-for="tg in item.tags" :key="tg" class="mini-tag">#{{ tg }}</text>
+					</view>
+				</view>
+				<view class="actions">
+					<view class="action-btn" @click="toggleFollow(item)" v-if="item.author_id && item.author_id !== currentUserId">
+						<text :class="['action-icon', item.is_following_author ? 'active' : '']">{{ item.is_following_author ? '✓' : '+' }}</text>
+						<text class="action-text">{{ item.is_following_author ? '已关注' : '关注' }}</text>
+					</view>
+					<view class="action-btn" @click="toggleFavorite(item)">
+						<text :class="['action-icon', item.is_favorited ? 'active' : '']">★</text>
+						<text class="action-text">{{ item.is_favorited ? '已收藏' : '收藏' }}</text>
+					</view>
+					<view class="action-btn" @click="toggleLike(item)">
+						<text :class="['action-icon', item.is_liked ? 'active' : '']">♥</text>
+						<text class="action-text">{{ item.likes_count || 0 }}</text>
+					</view>
 				</view>
 			</view>
 		</view>
@@ -39,7 +61,7 @@
 </template>
 
 <script>
-import { get } from '@/utils/request.js'
+import { get, post } from '@/utils/request.js'
 export default {
 	data() {
 		return {
@@ -51,10 +73,13 @@ export default {
 			currentType: 'all',
 			tags: ['热门', '进球', '防守', '伤病', '校园杯', '新生杯'],
 			activeTag: '',
-			list: []
+			list: [],
+			currentUserId: null
 		}
 	},
 	onLoad(options) {
+		const userInfo = uni.getStorageSync('userInfo') || {}
+		this.currentUserId = userInfo.id || null
 		if (options.type) {
 			this.currentType = options.type
 		}
@@ -85,24 +110,94 @@ export default {
 					tag: this.activeTag,
 					pageSize: 30
 				})
-				const raw = res.data.success ? res.data.data : res.data.data || []
-				this.list = (raw || []).map(item => {
-					const media = item.media || []
-					const firstImage = media.find(m => m.type === 'image') || null
-					const firstVideo = media.find(m => m.type === 'video') || null
-					return {
-						...item,
-						time: item.created_at ? item.created_at.slice(5,16) : '',
-						firstImage,
-						firstVideo
-					}
-				})
+				if (res.data && res.data.success) {
+					const raw = res.data.data || []
+					this.list = (raw || []).map(item => {
+						const media = item.media || []
+						const firstImage = media.find(m => m.type === 'image') || null
+						const firstVideo = media.find(m => m.type === 'video') || null
+						return {
+							...item,
+							time: item.created_at ? item.created_at.slice(5,16) : '',
+							firstImage,
+							firstVideo,
+							// 确保交互状态有默认值
+							is_liked: item.is_liked || false,
+							is_favorited: item.is_favorited || false,
+							is_following_author: item.is_following_author || false,
+							likes_count: item.likes_count || 0
+						}
+					})
+				} else {
+					console.warn('fetch news list: response not success', res.data)
+					this.list = []
+				}
 			} catch (e) {
-				console.warn('fetch news list fail', e)
+				console.error('fetch news list fail', e)
+				uni.showToast({ title: '获取资讯列表失败，请检查数据库迁移', icon: 'none', duration: 3000 })
+				this.list = []
 			}
 		},
 		goDetail(id) {
 			uni.navigateTo({ url: `/pages/news/news-detail?id=${id}` })
+		},
+		async toggleFollow(item) {
+			if (!this.currentUserId) {
+				uni.showToast({ title: '请先登录', icon: 'none' })
+				return
+			}
+			try {
+				const res = await post('/api/users/follow', { following_id: item.author_id })
+				if (res.data.success) {
+					item.is_following_author = res.data.data.isFollowing
+					uni.showToast({ 
+						title: item.is_following_author ? '关注成功' : '取消关注', 
+						icon: 'success' 
+					})
+				}
+			} catch (e) {
+				console.error('toggle follow error', e)
+				uni.showToast({ title: '操作失败', icon: 'none' })
+			}
+		},
+		async toggleFavorite(item) {
+			if (!this.currentUserId) {
+				uni.showToast({ title: '请先登录', icon: 'none' })
+				return
+			}
+			try {
+				const res = await post('/api/users/favorite', { post_id: item.id })
+				if (res.data.success) {
+					item.is_favorited = res.data.data.isFavorited
+					uni.showToast({ 
+						title: item.is_favorited ? '收藏成功' : '取消收藏', 
+						icon: 'success' 
+					})
+				}
+			} catch (e) {
+				console.error('toggle favorite error', e)
+				uni.showToast({ title: '操作失败', icon: 'none' })
+			}
+		},
+		async toggleLike(item) {
+			if (!this.currentUserId) {
+				uni.showToast({ title: '请先登录', icon: 'none' })
+				return
+			}
+			try {
+				const res = await post('/api/users/like', { post_id: item.id })
+				if (res.data.success) {
+					item.is_liked = res.data.data.isLiked
+					if (item.is_liked) {
+						item.likes_count = (item.likes_count || 0) + 1
+					} else {
+						item.likes_count = Math.max(0, (item.likes_count || 0) - 1)
+					}
+				}
+			} catch (e) {
+				console.error('toggle like error', e)
+				uni.showToast({ title: '操作失败', icon: 'none' })
+			}
 		},
 		badgeLabel(type) {
 			if (type === 'flash') return '快讯'
@@ -219,6 +314,7 @@ export default {
 .tags {
 	margin-top: 6px;
 	display: flex;
+	flex-direction: row;
 	flex-wrap: wrap;
 	gap: 6px;
 }
@@ -228,6 +324,59 @@ export default {
 	background: #f0f6ff;
 	padding: 2px 6px;
 	border-radius: 6px;
+}
+
+.card-header {
+	margin-bottom: 8px;
+}
+
+.author-info {
+	display: flex;
+	align-items: center;
+	margin-bottom: 6px;
+}
+
+.author-avatar {
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	margin-right: 8px;
+	background: #f5f5f5;
+}
+
+.author-name {
+	font-size: 13px;
+	color: #666;
+}
+
+.actions {
+	display: flex;
+	flex-direction: row;
+	justify-content: flex-end;
+	gap: 15px;
+	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px solid #f5f5f5;
+}
+
+.action-btn {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.action-icon {
+	font-size: 18px;
+	color: #999;
+}
+
+.action-icon.active {
+	color: #e54d42;
+}
+
+.action-text {
+	font-size: 13px;
+	color: #666;
 }
 </style>
 

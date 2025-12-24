@@ -1,0 +1,117 @@
+<template>
+	<view class="container">
+		<view class="header">
+			<text class="title">我的关注</text>
+		</view>
+		
+		<view class="list">
+			<view v-for="item in followings" :key="item.id" class="user-item">
+				<image :src="item.avatar || '/static/logo.png'" class="avatar" />
+				<view class="user-info">
+					<text class="username">{{ item.username }}</text>
+					<text class="bio" v-if="item.bio">{{ item.bio }}</text>
+				</view>
+			</view>
+			
+			<view v-if="followings.length === 0" class="empty">
+				<text>还没有关注任何人</text>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+import { get } from '@/utils/request.js'
+
+export default {
+	data() {
+		return {
+			followings: []
+		}
+	},
+	onLoad() {
+		this.fetchFollowings()
+	},
+	methods: {
+		async fetchFollowings() {
+			try {
+				const res = await get('/api/users/followings')
+				if (res.data.success) {
+					this.followings = res.data.data || []
+				}
+			} catch (e) {
+				console.error('fetch followings error', e)
+				uni.showToast({ title: '获取关注列表失败', icon: 'none' })
+			}
+		}
+	}
+}
+</script>
+
+<style>
+.container {
+	background-color: #f8f8f8;
+	min-height: 100vh;
+	padding: 20px;
+}
+
+.header {
+	margin-bottom: 20px;
+}
+
+.title {
+	font-size: 24px;
+	font-weight: bold;
+	color: #333;
+}
+
+.list {
+	background: #fff;
+	border-radius: 10px;
+	overflow: hidden;
+}
+
+.user-item {
+	display: flex;
+	align-items: center;
+	padding: 15px;
+	border-bottom: 1px solid #f5f5f5;
+}
+
+.user-item:last-child {
+	border-bottom: none;
+}
+
+.avatar {
+	width: 50px;
+	height: 50px;
+	border-radius: 50%;
+	margin-right: 15px;
+	background: #f5f5f5;
+}
+
+.user-info {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+}
+
+.username {
+	font-size: 16px;
+	font-weight: bold;
+	color: #333;
+	margin-bottom: 5px;
+}
+
+.bio {
+	font-size: 14px;
+	color: #999;
+}
+
+.empty {
+	text-align: center;
+	padding: 40px;
+	color: #999;
+}
+</style>
+

@@ -1,3 +1,4 @@
+require('dotenv').config(); 
 const { Pool } = require('pg');
 
 // IMPORTANT: Replace with your actual PostgreSQL credentials.

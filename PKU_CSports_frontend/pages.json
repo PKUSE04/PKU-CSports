@@ -94,6 +94,36 @@
 			"style": {
 				"navigationBarTitleText": "我的主队"
 			}
+		},
+		{
+			"path": "pages/profile/settings",
+			"style": {
+				"navigationBarTitleText": "设置"
+			}
+		},
+		{
+			"path": "pages/profile/favorites",
+			"style": {
+				"navigationBarTitleText": "我的收藏"
+			}
+		},
+		{
+			"path": "pages/profile/followings",
+			"style": {
+				"navigationBarTitleText": "我的关注"
+			}
+		},
+		{
+			"path": "pages/profile/followers",
+			"style": {
+				"navigationBarTitleText": "我的粉丝"
+			}
+		},
+		{
+			"path": "pages/tools/create-team-account",
+			"style": {
+				"navigationBarTitleText": "创建队伍账号"
+			}
 		}
 	],
 	"globalStyle": {

@@ -3,7 +3,9 @@ const newsService = require('../services/newsService');
 exports.list = async (req, res) => {
   try {
     const { type = 'all', tag = '', page = 1, pageSize = 10 } = req.query;
-    const data = await newsService.list({ type, tag, page, pageSize });
+    // 如果用户已登录，传递userId以获取交互状态
+    const userId = req.user ? req.user.id : null;
+    const data = await newsService.list({ type, tag, page, pageSize, userId });
     res.json({ success: true, data });
   } catch (err) {
     console.error('news list error', err);
@@ -13,7 +15,9 @@ exports.list = async (req, res) => {
 
 exports.detail = async (req, res) => {
   try {
-    const item = await newsService.detail(req.params.id);
+    // 如果用户已登录，传递userId以获取交互状态
+    const userId = req.user ? req.user.id : null;
+    const item = await newsService.detail(req.params.id, userId);
     if (!item) return res.status(404).json({ success: false, message: '未找到资讯' });
     res.json({ success: true, data: item });
   } catch (err) {

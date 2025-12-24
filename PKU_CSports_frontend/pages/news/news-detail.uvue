@@ -1,5 +1,19 @@
 <template>
 	<view class="container">
+		<view class="author-section" v-if="news.author_name">
+			<image :src="news.author_avatar || '/static/logo.png'" class="author-avatar" />
+			<view class="author-info">
+				<text class="author-name">{{ news.author_name }}</text>
+			</view>
+			<button 
+				v-if="news.author_id && news.author_id !== currentUserId" 
+				:class="['follow-btn', news.is_following_author ? 'followed' : '']"
+				@click="toggleFollow"
+			>
+				{{ news.is_following_author ? '已关注' : '关注' }}
+			</button>
+		</view>
+		
 		<view class="news-title">{{ news.title }}</view>
 		<view class="news-content">{{ news.content }}</view>
 		<view v-if="(news.media || []).length" class="media-box">
@@ -20,6 +34,17 @@
 					controls
 					class="media-video"
 				/>
+			</view>
+		</view>
+		
+		<view class="actions-bar">
+			<view class="action-btn" @click="toggleFavorite">
+				<text :class="['action-icon', news.is_favorited ? 'active' : '']">★</text>
+				<text class="action-text">{{ news.is_favorited ? '已收藏' : '收藏' }}</text>
+			</view>
+			<view class="action-btn" @click="toggleLike">
+				<text :class="['action-icon', news.is_liked ? 'active' : '']">♥</text>
+				<text class="action-text">{{ news.likes_count || 0 }}</text>
 			</view>
 		</view>
 
@@ -46,20 +71,24 @@ export default {
 			id: '',
 			news: {
 				title: '',
-				content: ''
+				content: '',
+				media: []
 			},
 			comments: [],
 			user: {
 				name: '',
 				canComment: false
 			},
-			newComment: ''
+			newComment: '',
+			currentUserId: null
 		}
 	},
 	onLoad(options) {
 		this.id = options.id
+		const userInfo = uni.getStorageSync('userInfo') || {}
+		this.currentUserId = userInfo.id || null
 		this.user = {
-			name: (uni.getStorageSync('userInfo') || {}).username || '游客',
+			name: userInfo.username || '游客',
 			canComment: !!uni.getStorageSync('token')
 		}
 		this.fetchDetail()
@@ -69,7 +98,13 @@ export default {
 		async fetchDetail() {
 			try {
 				const res = await get(`/api/news/${this.id}`)
-				if (res.data.success) this.news = res.data.data
+				if (res.data.success) {
+					this.news = res.data.data
+					// 确保media是数组
+					if (!Array.isArray(this.news.media)) {
+						this.news.media = []
+					}
+				}
 			} catch (e) {
 				console.warn('news detail fail', e)
 			}
@@ -80,6 +115,64 @@ export default {
 				this.comments = res.data.data || []
 			} catch (e) {
 				console.warn('comments fail', e)
+			}
+		},
+		async toggleFollow() {
+			if (!this.currentUserId) {
+				uni.showToast({ title: '请先登录', icon: 'none' })
+				return
+			}
+			try {
+				const res = await post('/api/users/follow', { following_id: this.news.author_id })
+				if (res.data.success) {
+					this.news.is_following_author = res.data.data.isFollowing
+					uni.showToast({ 
+						title: this.news.is_following_author ? '关注成功' : '取消关注', 
+						icon: 'success' 
+					})
+				}
+			} catch (e) {
+				console.error('toggle follow error', e)
+				uni.showToast({ title: '操作失败', icon: 'none' })
+			}
+		},
+		async toggleFavorite() {
+			if (!this.currentUserId) {
+				uni.showToast({ title: '请先登录', icon: 'none' })
+				return
+			}
+			try {
+				const res = await post('/api/users/favorite', { post_id: this.id })
+				if (res.data.success) {
+					this.news.is_favorited = res.data.data.isFavorited
+					uni.showToast({ 
+						title: this.news.is_favorited ? '收藏成功' : '取消收藏', 
+						icon: 'success' 
+					})
+				}
+			} catch (e) {
+				console.error('toggle favorite error', e)
+				uni.showToast({ title: '操作失败', icon: 'none' })
+			}
+		},
+		async toggleLike() {
+			if (!this.currentUserId) {
+				uni.showToast({ title: '请先登录', icon: 'none' })
+				return
+			}
+			try {
+				const res = await post('/api/users/like', { post_id: this.id })
+				if (res.data.success) {
+					this.news.is_liked = res.data.data.isLiked
+					if (this.news.is_liked) {
+						this.news.likes_count = (this.news.likes_count || 0) + 1
+					} else {
+						this.news.likes_count = Math.max(0, (this.news.likes_count || 0) - 1)
+					}
+				}
+			} catch (e) {
+				console.error('toggle like error', e)
+				uni.showToast({ title: '操作失败', icon: 'none' })
 			}
 		},
 		async submitComment() {
@@ -176,5 +269,76 @@ export default {
 	border-radius: 5px;
 	padding: 5px 15px;
 	font-size: 14px;
+}
+
+.author-section {
+	display: flex;
+	align-items: center;
+	margin-bottom: 15px;
+	padding: 10px;
+	background: #fff;
+	border-radius: 10px;
+}
+
+.author-avatar {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	margin-right: 10px;
+	background: #f5f5f5;
+}
+
+.author-info {
+	flex: 1;
+}
+
+.author-name {
+	font-size: 15px;
+	font-weight: bold;
+	color: #333;
+}
+
+.follow-btn {
+	padding: 6px 15px;
+	border-radius: 20px;
+	font-size: 13px;
+	background: #409eff;
+	color: #fff;
+	border: none;
+}
+
+.follow-btn.followed {
+	background: #ccc;
+}
+
+.actions-bar {
+	display: flex;
+	flex-direction: row;
+	justify-content: flex-end;
+	gap: 20px;
+	padding: 15px;
+	background: #fff;
+	border-radius: 10px;
+	margin-bottom: 16px;
+}
+
+.action-btn {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.action-icon {
+	font-size: 20px;
+	color: #999;
+}
+
+.action-icon.active {
+	color: #e54d42;
+}
+
+.action-text {
+	font-size: 14px;
+	color: #666;
 }
 </style>

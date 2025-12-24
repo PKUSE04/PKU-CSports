@@ -1,6 +1,7 @@
 const db = require('../config/db');
+const userService = require('./userService');
 
-exports.list = async ({ type, tag, page = 1, pageSize = 10 }) => {
+exports.list = async ({ type, tag, page = 1, pageSize = 10, userId = null }) => {
   const offset = (page - 1) * pageSize;
   const params = [];
   const where = [];
@@ -15,22 +16,56 @@ exports.list = async ({ type, tag, page = 1, pageSize = 10 }) => {
   }
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const sql = `
-    SELECT id, title, content, type, tags, cover, media, created_at, updated_at, author_id
-    FROM posts
+    SELECT p.id, p.title, p.content, p.type, p.tags, p.cover, p.media, 
+           p.created_at, p.updated_at, p.author_id,
+           u.username as author_name, u.avatar as author_avatar,
+           (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes_count,
+           (SELECT COUNT(*) FROM favorites WHERE post_id = p.id) as favorites_count
+    FROM posts p
+    LEFT JOIN users u ON p.author_id = u.id
     ${whereSql}
-    ORDER BY created_at DESC
+    ORDER BY p.created_at DESC
     LIMIT ${pageSize} OFFSET ${offset}
   `;
   const result = await db.query(sql, params);
-  // 确保 media 字段是数组格式
-  return result.rows.map(row => ({
-    ...row,
-    media: row.media || []
+  
+  // 处理结果，添加用户交互状态
+  const posts = await Promise.all(result.rows.map(async (row) => {
+    const post = {
+      ...row,
+      media: row.media || []
+    };
+    
+    // 如果提供了userId，检查是否点赞、收藏、关注
+    if (userId) {
+      post.is_liked = await userService.isLiked(userId, row.id);
+      post.is_favorited = await userService.isFavorited(userId, row.id);
+      if (row.author_id) {
+        post.is_following_author = await userService.isFollowing(userId, row.author_id);
+      }
+    } else {
+      post.is_liked = false;
+      post.is_favorited = false;
+      post.is_following_author = false;
+    }
+    
+    return post;
   }));
+  
+  return posts;
 };
 
-exports.detail = async (id) => {
-  const result = await db.query('SELECT * FROM posts WHERE id = $1', [id]);
+exports.detail = async (id, userId = null) => {
+  const result = await db.query(
+    `SELECT p.*, 
+     u.username as author_name, u.avatar as author_avatar,
+     (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes_count,
+     (SELECT COUNT(*) FROM favorites WHERE post_id = p.id) as favorites_count
+     FROM posts p
+     LEFT JOIN users u ON p.author_id = u.id
+     WHERE p.id = $1`,
+    [id]
+  );
   const row = result.rows[0];
   if (row) {
     // 确保 media 字段是数组格式
@@ -42,6 +77,19 @@ exports.detail = async (id) => {
       }
     } else if (!row.media) {
       row.media = [];
+    }
+    
+    // 如果提供了userId，检查是否点赞、收藏、关注
+    if (userId) {
+      row.is_liked = await userService.isLiked(userId, id);
+      row.is_favorited = await userService.isFavorited(userId, id);
+      if (row.author_id) {
+        row.is_following_author = await userService.isFollowing(userId, row.author_id);
+      }
+    } else {
+      row.is_liked = false;
+      row.is_favorited = false;
+      row.is_following_author = false;
     }
   }
   return row;
