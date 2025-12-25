@@ -118,8 +118,10 @@ export default {
 .container {
 	background: #f8f8f8;
 	min-height: 100vh;
+	padding-bottom: 70px;
 	display: flex;
 	flex-direction: column;
+	box-sizing: border-box;
 }
 .header {
 	display: flex;

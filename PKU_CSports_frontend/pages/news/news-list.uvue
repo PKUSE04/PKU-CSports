@@ -6,11 +6,17 @@
 			</view>
 		</view>
 
-		<scroll-view scroll-x class="tag-bar">
-			<view v-for="(tag,idx) in tags" :key="tag" :class="['tag-chip',{active: activeTag===tag}]" @click="toggleTag(tag)">
-				{{ tag }}
-			</view>
-		</scroll-view>
+		<!-- 搜索框 -->
+		<view class="search-bar">
+			<input
+				class="search-input"
+				v-model="searchKeyword"
+				placeholder="搜索关键词..."
+				@input="onSearchInput"
+				@confirm="onSearchConfirm"
+			/>
+			<text class="search-icon">🔍</text>
+		</view>
 
 		<view class="list">
 			<view v-for="item in filteredList" :key="item.id" class="card">
@@ -71,8 +77,7 @@ export default {
 				{ label: '全部', value: 'all' }
 			],
 			currentType: 'all',
-			tags: ['热门', '进球', '防守', '伤病', '校园杯', '新生杯'],
-			activeTag: '',
+			searchKeyword: '',
 			list: [],
 			currentUserId: null
 		}
@@ -89,8 +94,12 @@ export default {
 		filteredList() {
 			return this.list.filter(item => {
 				const typeOk = this.currentType === 'all' || item.type === this.currentType
-				const tagOk = !this.activeTag || item.tags.includes(this.activeTag)
-				return typeOk && tagOk
+				// 关键字搜索：搜索标题和内容
+				const keywordOk = !this.searchKeyword || 
+					item.title.toLowerCase().includes(this.searchKeyword.toLowerCase()) ||
+					(item.content && item.content.toLowerCase().includes(this.searchKeyword.toLowerCase())) ||
+					(item.tags && item.tags.some(tag => tag.toLowerCase().includes(this.searchKeyword.toLowerCase())))
+				return typeOk && keywordOk
 			})
 		}
 	},
@@ -99,15 +108,18 @@ export default {
 			this.currentType = val
 			this.fetchList()
 		},
-		toggleTag(tag) {
-			this.activeTag = this.activeTag === tag ? '' : tag
+		onSearchInput() {
+			// 实时搜索，不需要重新请求，使用computed过滤
+		},
+		onSearchConfirm() {
+			// 确认搜索，可以在这里触发重新请求（如果需要后端搜索）
 			this.fetchList()
 		},
 		async fetchList() {
 			try {
 				const res = await get('/api/news', {
 					type: this.currentType === 'all' ? '' : this.currentType,
-					tag: this.activeTag,
+					keyword: this.searchKeyword || '',
 					pageSize: 30
 				})
 				if (res.data && res.data.success) {
@@ -211,8 +223,10 @@ export default {
 <style>
 .container {
 	padding: 12px;
+	padding-bottom: 70px;
 	background: #f5f6fa;
 	min-height: 100vh;
+	box-sizing: border-box;
 }
 .nav {
 	display: flex;
@@ -234,23 +248,27 @@ export default {
 	font-weight: 700;
 	border-bottom: 3px solid #409eff;
 }
-.tag-bar {
+.search-bar {
+	display: flex;
 	flex-direction: row;
-	white-space: nowrap;
-	margin-bottom: 12px;
-}
-.tag-chip {
-	display: inline-block;
-	padding: 8px 12px;
-	margin-right: 8px;
+	align-items: center;
 	background: #fff;
-	border-radius: 18px;
-	color: #666;
+	border-radius: 20px;
+	padding: 8px 16px;
+	margin-bottom: 12px;
 	box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
-.tag-chip.active {
-	background: #409eff;
-	color: #fff;
+
+.search-input {
+	flex: 1;
+	font-size: 14px;
+	color: #333;
+}
+
+.search-icon {
+	font-size: 16px;
+	margin-left: 8px;
+	color: #999;
 }
 .list {
 	display: flex;
@@ -379,4 +397,5 @@ export default {
 	color: #666;
 }
 </style>
+
 

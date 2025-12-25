@@ -1,8 +1,5 @@
 <template>
 	<view class="container">
-		<view class="header">
-			<text class="title">创建队伍账号</text>
-		</view>
 		
 		<view class="form-section">
 			<view class="form-item">
@@ -144,16 +141,6 @@ export default {
 	padding: 20px;
 }
 
-.header {
-	margin-bottom: 20px;
-}
-
-.title {
-	font-size: 24px;
-	font-weight: bold;
-	color: #333;
-}
-
 .form-section {
 	background: #fff;
 	border-radius: 10px;
@@ -223,4 +210,5 @@ export default {
 	font-weight: bold;
 }
 </style>
+
 

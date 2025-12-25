@@ -24,7 +24,8 @@ const optionalAuth = (req, res, next) => {
 router.get('/', optionalAuth, newsController.list);
 router.get('/:id', optionalAuth, newsController.detail);
 
-router.post('/', authMiddleware, allowRoles('association', 'admin'), newsController.create);
+// 所有登录用户都可以创建帖子，但普通用户只能创建type='post'的帖子
+router.post('/', authMiddleware, newsController.create);
 router.patch('/:id', authMiddleware, allowRoles('association', 'admin'), newsController.update);
 
 module.exports = router;

@@ -8,7 +8,7 @@
         placeholder="请输入标题（例如：校园杯首战快讯）"
       />
 
-      <view class="module-selector">
+      <view class="module-selector" v-if="canPublish">
         <text class="module-label">所属模块（可选）</text>
         <view class="module-options">
           <view
@@ -26,6 +26,21 @@
           >
             {{ opt.label }}
           </view>
+        </view>
+      </view>
+
+      <!-- Tag输入框 -->
+      <view class="tag-input-section">
+        <text class="tag-label">标签（可选）</text>
+        <view class="tag-input-wrapper">
+          <input
+            class="tag-input"
+            v-model="tagInput"
+            placeholder="输入标签后按回车添加"
+            @confirm="addTag"
+            @blur="addTag"
+          />
+          <button class="add-tag-btn" @click="addTag">添加</button>
         </view>
       </view>
 
@@ -113,9 +128,14 @@ export default {
   onShow() {
     const info = uni.getStorageSync('userInfo') || {}
     this.userRole = info.role || 'user'
-    if (!this.canPublish) {
-      uni.showToast({ title: '仅协会方/管理员可发布', icon: 'none' })
+    // 普通用户也可以发布帖子，但只能发布普通帖子
+    if (!info.id) {
+      uni.showToast({ title: '请先登录', icon: 'none' })
       setTimeout(() => uni.navigateBack(), 800)
+    }
+    // 如果不是协会/管理员，默认设置为普通帖子类型
+    if (!this.canPublish) {
+      this.moduleType = 'post'
     }
   },
   methods: {
@@ -211,7 +231,8 @@ export default {
         this.errorMsg = '请输入内容或添加媒体';
         return;
       }
-      if (!this.moduleType) {
+      // 只有协会/管理员才需要选择模块
+      if (this.canPublish && !this.moduleType) {
         this.errorMsg = '请选择所属模块';
         return;
       }
@@ -227,7 +248,7 @@ export default {
         const payload = {
           title: this.title.trim() || this.content.slice(0, 30) || '帖子',
           content: this.content,
-          type: this.moduleType,
+          type: this.moduleType || 'post', // 普通用户默认为post
           tags: this.tags,
           media: mediaPayload
         };
@@ -256,8 +277,10 @@ export default {
 <style>
 .page { 
 	padding: 12px; 
+	padding-bottom: 20px;
 	background-color: #f5f7fa; 
 	min-height: 100vh; 
+	box-sizing: border-box;
 }
 .title-input { 
 	width: 100%; 
@@ -334,13 +357,15 @@ export default {
 	gap: 12px; 
 }
 .tags { 
-	display: flex; 
+	display: flex;
+	flex-direction: row;
 	align-items: center; 
 	gap: 8px; 
 	flex-wrap: wrap; 
 }
 .tag-list {
   display: flex;
+  flex-direction: row;
   flex-wrap: wrap;
   gap: 8px;
 }
@@ -357,12 +382,40 @@ export default {
 	margin-left: 6px; 
 	color: #999; 
 }
-.tag-input { border: 1px dashed #ddd; padding: 6px 8px; border-radius: 8px; min-width: 140px; }
-.add-tag { 
-	background: #409eff; 
-	color: #fff; 
-	padding: 6px 10px; 
-	border-radius: 8px; 
+.tag-input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tag-label {
+  font-size: 14px;
+  color: #666;
+}
+
+.tag-input-wrapper {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+}
+
+.tag-input { 
+  flex: 1;
+  border: 1px solid #eee; 
+  padding: 8px 12px; 
+  border-radius: 8px; 
+  font-size: 14px;
+  background: #fafafa;
+}
+
+.add-tag-btn { 
+  background: #409eff; 
+  color: #fff; 
+  padding: 8px 16px; 
+  border-radius: 8px; 
+  font-size: 14px;
+  white-space: nowrap;
 }
 .editor-toolbar {
   display: flex;

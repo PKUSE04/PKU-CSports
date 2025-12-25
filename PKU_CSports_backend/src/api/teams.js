@@ -18,3 +18,4 @@ router.get('/accounts', authMiddleware, allowRoles('association', 'admin'), team
 
 module.exports = router;
 
+

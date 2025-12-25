@@ -1,4 +1,5 @@
-const baseURL = 'http://10.129.82.168:3000';
+// const baseURL = 'http://10.129.82.168:3000';
+const baseURL = 'http://localhost:3000'
 
 export function request(options) {
   return new Promise((resolve, reject) => {

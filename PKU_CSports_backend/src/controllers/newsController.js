@@ -29,6 +29,16 @@ exports.detail = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     const body = req.body || {};
+    const userRole = req.user.role || 'user';
+    
+    // 普通用户只能发布type='post'的帖子，不能发布战报和资讯
+    if (userRole === 'user' && body.type && body.type !== 'post') {
+      return res.status(403).json({ 
+        success: false, 
+        message: '普通用户只能发布普通帖子，战报和资讯仅限协会方/管理员发布' 
+      });
+    }
+    
     // 确保 media 是数组格式
     const media = Array.isArray(body.media) ? body.media : (body.media ? [body.media] : []);
     const result = await newsService.create({ 
