@@ -133,8 +133,10 @@ export default {
 <style>
 .container {
 	padding: 10px;
+	padding-bottom: 70px;
 	background-color: #f5f6fa;
 	min-height: 100vh;
+	box-sizing: border-box;
 }
 .nav-bar {
 	display: flex;

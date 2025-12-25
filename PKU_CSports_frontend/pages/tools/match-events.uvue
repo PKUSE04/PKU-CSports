@@ -1,0 +1,582 @@
+<template>
+	<view class="container">
+		<view class="header">
+			<text class="title">比赛事件管理</text>
+		</view>
+
+		<!-- 比赛选择 -->
+		<view class="form-section">
+			<view class="form-item">
+				<text class="label">选择比赛 *</text>
+				<picker mode="selector" :range="matchOptions" range-key="display" :value="selectedMatchIndex" @change="onMatchChange">
+					<view class="picker">
+						<text>{{ selectedMatchDisplay || '请选择比赛' }}</text>
+						<text class="picker-arrow">></text>
+					</view>
+				</picker>
+			</view>
+		</view>
+
+		<!-- 事件列表 -->
+		<view v-if="selectedMatch" class="events-section">
+			<view class="section-header">
+				<text class="section-title">比赛事件</text>
+				<button class="add-event-btn" @click="showAddEvent">+ 添加事件</button>
+			</view>
+
+			<view class="events-list">
+				<view v-for="(event, idx) in events" :key="idx" class="event-item">
+					<view class="event-time">{{ event.minute }}'</view>
+					<view class="event-content">
+						<view class="event-type-badge" :class="event.event_type">
+							{{ getEventTypeLabel(event.event_type) }}
+						</view>
+						<text class="event-desc">
+							{{ event.side === 'home' ? selectedMatch.home_team_name : selectedMatch.away_team_name }}
+							{{ event.player_name ? `${event.player_name}(${event.player_number_display || event.player_number})` : '' }}
+							{{ event.description || '' }}
+						</text>
+					</view>
+					<text class="delete-event" @click="deleteEvent(event.id)">删除</text>
+				</view>
+
+				<view v-if="events.length === 0" class="empty-state">
+					<text>暂无事件</text>
+				</view>
+			</view>
+		</view>
+
+		<!-- 添加事件弹窗 -->
+		<view v-if="showAddEventModal" class="modal-overlay" @click="closeAddEvent">
+			<view class="modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">添加事件</text>
+					<text class="modal-close" @click="closeAddEvent">×</text>
+				</view>
+
+				<view class="modal-body">
+					<view class="form-item">
+						<text class="label">事件类型 *</text>
+						<picker mode="selector" :range="eventTypeOptions" :value="eventForm.typeIndex" @change="onEventTypeChange">
+							<view class="picker">
+								<text>{{ eventForm.event_type || '请选择' }}</text>
+								<text class="picker-arrow">></text>
+							</view>
+						</picker>
+					</view>
+
+					<view class="form-item">
+						<text class="label">发生时间（分钟）*</text>
+						<input v-model.number="eventForm.minute" type="number" placeholder="如：15" class="input" />
+					</view>
+
+					<view class="form-item">
+						<text class="label">发生方 *</text>
+						<picker mode="selector" :range="['主队', '客队']" :value="eventForm.sideIndex" @change="onSideChange">
+							<view class="picker">
+								<text>{{ eventForm.side === 'home' ? '主队' : eventForm.side === 'away' ? '客队' : '请选择' }}</text>
+								<text class="picker-arrow">></text>
+							</view>
+						</picker>
+					</view>
+
+					<view class="form-item">
+						<text class="label">球员</text>
+						<picker mode="selector" :range="playerOptions" range-key="display" :value="eventForm.playerIndex" @change="onPlayerChange">
+							<view class="picker">
+								<text>{{ eventForm.player_display || '请选择球员（可选）' }}</text>
+								<text class="picker-arrow">></text>
+							</view>
+						</picker>
+					</view>
+
+					<view class="form-item">
+						<text class="label">事件描述</text>
+						<textarea v-model="eventForm.description" placeholder="可选，如：点球、任意球等" class="textarea" />
+					</view>
+				</view>
+
+				<view class="modal-footer">
+					<button class="cancel-btn" @click="closeAddEvent">取消</button>
+					<button class="confirm-btn" @click="submitEvent">确定</button>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+import { get, post, patch, del } from '@/utils/request.js'
+
+export default {
+	data() {
+		return {
+			matches: [],
+			selectedMatchIndex: 0,
+			selectedMatch: null,
+			events: [],
+			showAddEventModal: false,
+			eventTypeOptions: ['进球', '犯规', '黄牌', '红牌', '换人', '点球', '任意球', '角球'],
+			eventForm: {
+				event_type: '',
+				typeIndex: 0,
+				minute: null,
+				side: '',
+				sideIndex: 0,
+				player_id: null,
+				player_number: null,
+				playerIndex: 0,
+				player_display: '',
+				description: ''
+			},
+			players: []
+		}
+	},
+	computed: {
+		matchOptions() {
+			return this.matches.map(m => ({
+				...m,
+				display: `${m.home_team_name} vs ${m.away_team_name} (${m.date_time ? new Date(m.date_time).toLocaleDateString() : ''})`
+			}))
+		},
+		selectedMatchDisplay() {
+			if (this.selectedMatch) {
+				return `${this.selectedMatch.home_team_name} vs ${this.selectedMatch.away_team_name}`
+			}
+			return ''
+		},
+		playerOptions() {
+			if (!this.selectedMatch) return []
+			const homePlayers = (this.selectedMatch.lineup?.starters || [])
+				.filter(p => p.side === 'home')
+				.map(p => ({
+					id: p.player_id,
+					number: p.number,
+					name: p.name,
+					side: 'home',
+					display: `主队 ${p.number}号 ${p.name}`
+				}))
+			const awayPlayers = (this.selectedMatch.lineup?.starters || [])
+				.filter(p => p.side === 'away')
+				.map(p => ({
+					id: p.player_id,
+					number: p.number,
+					name: p.name,
+					side: 'away',
+					display: `客队 ${p.number}号 ${p.name}`
+				}))
+			return [{ id: null, display: '无' }, ...homePlayers, ...awayPlayers]
+		}
+	},
+	onLoad() {
+		this.fetchMatches()
+	},
+	methods: {
+		async fetchMatches() {
+			try {
+				const res = await get('/api/matches', { pageSize: 100 })
+				if (res.data && res.data.success) {
+					this.matches = res.data.data || []
+					if (this.matches.length > 0) {
+						this.selectedMatchIndex = 0
+						this.onMatchChange({ detail: { value: 0 } })
+					}
+				}
+			} catch (e) {
+				console.error('fetch matches error', e)
+			}
+		},
+		async onMatchChange(e) {
+			this.selectedMatchIndex = parseInt(e.detail.value)
+			this.selectedMatch = this.matches[this.selectedMatchIndex]
+			if (this.selectedMatch) {
+				// 获取比赛详情（包含阵容）
+				try {
+					const res = await get(`/api/matches/${this.selectedMatch.id}`)
+					if (res.data && res.data.success) {
+						this.selectedMatch = res.data.data
+					}
+				} catch (e) {
+					console.error('fetch match detail error', e)
+				}
+				// 获取比赛事件
+				await this.fetchEvents()
+			}
+		},
+		async fetchEvents() {
+			if (!this.selectedMatch) return
+			try {
+				const res = await get(`/api/match-events/match/${this.selectedMatch.id}`)
+				if (res.data && res.data.success) {
+					this.events = res.data.data || []
+				}
+			} catch (e) {
+				console.error('fetch events error', e)
+			}
+		},
+		showAddEvent() {
+			this.eventForm = {
+				event_type: '',
+				typeIndex: 0,
+				minute: null,
+				side: '',
+				sideIndex: 0,
+				player_id: null,
+				player_number: null,
+				playerIndex: 0,
+				player_display: '',
+				description: ''
+			}
+			this.showAddEventModal = true
+		},
+		closeAddEvent() {
+			this.showAddEventModal = false
+		},
+		onEventTypeChange(e) {
+			const index = parseInt(e.detail.value)
+			const typeMap = {
+				'进球': 'goal',
+				'犯规': 'foul',
+				'黄牌': 'yellow_card',
+				'红牌': 'red_card',
+				'换人': 'substitution',
+				'点球': 'penalty',
+				'任意球': 'free_kick',
+				'角球': 'corner'
+			}
+			this.eventForm.typeIndex = index
+			this.eventForm.event_type = typeMap[this.eventTypeOptions[index]] || this.eventTypeOptions[index]
+		},
+		onSideChange(e) {
+			const index = parseInt(e.detail.value)
+			this.eventForm.sideIndex = index
+			this.eventForm.side = index === 0 ? 'home' : 'away'
+		},
+		onPlayerChange(e) {
+			const index = parseInt(e.detail.value)
+			this.eventForm.playerIndex = index
+			const player = this.playerOptions[index]
+			if (player && player.id) {
+				this.eventForm.player_id = player.id
+				this.eventForm.player_number = player.number
+				this.eventForm.player_display = player.display
+			} else {
+				this.eventForm.player_id = null
+				this.eventForm.player_number = null
+				this.eventForm.player_display = ''
+			}
+		},
+		async submitEvent() {
+			if (!this.eventForm.event_type || !this.eventForm.minute || !this.eventForm.side) {
+				uni.showToast({ title: '请填写完整信息', icon: 'none' })
+				return
+			}
+
+			try {
+				const payload = {
+					match_id: this.selectedMatch.id,
+					event_type: this.eventForm.event_type,
+					minute: this.eventForm.minute,
+					side: this.eventForm.side,
+					player_id: this.eventForm.player_id,
+					player_number: this.eventForm.player_number,
+					description: this.eventForm.description
+				}
+
+				const res = await post('/api/match-events', payload)
+				if (res.data && res.data.success) {
+					uni.showToast({ title: '添加成功', icon: 'success' })
+					this.closeAddEvent()
+					await this.fetchEvents()
+				} else {
+					uni.showToast({ title: res.data?.message || '添加失败', icon: 'none' })
+				}
+			} catch (e) {
+				console.error('submit event error', e)
+				uni.showToast({ title: '添加失败', icon: 'none' })
+			}
+		},
+		async deleteEvent(eventId) {
+			uni.showModal({
+				title: '确认删除',
+				content: '确定要删除这个事件吗？',
+				success: async (res) => {
+					if (res.confirm) {
+						try {
+							// 尝试使用DELETE方法，失败则使用PATCH
+							let result
+							try {
+								result = await del(`/api/match-events/${eventId}`)
+							} catch (e) {
+								// 如果DELETE不支持，使用PATCH
+								result = await patch(`/api/match-events/${eventId}/delete`, {})
+							}
+							if (result.data && result.data.success) {
+								await this.fetchEvents()
+								uni.showToast({ title: '删除成功', icon: 'success' })
+							} else {
+								uni.showToast({ title: result.data?.message || '删除失败', icon: 'none' })
+							}
+						} catch (e) {
+							console.error('delete event error', e)
+							uni.showToast({ title: '删除失败', icon: 'none' })
+						}
+					}
+				}
+			})
+		},
+		getEventTypeLabel(type) {
+			const labelMap = {
+				'goal': '⚽ 进球',
+				'foul': '⚠️ 犯规',
+				'yellow_card': '🟨 黄牌',
+				'red_card': '🟥 红牌',
+				'substitution': '🔄 换人',
+				'penalty': '🎯 点球',
+				'free_kick': '⚡ 任意球',
+				'corner': '📐 角球'
+			}
+			return labelMap[type] || type
+		}
+	}
+}
+</script>
+
+<style>
+.container {
+	background-color: #f8f8f8;
+	min-height: 100vh;
+	padding: 20px;
+}
+
+.header {
+	margin-bottom: 20px;
+}
+
+.title {
+	font-size: 24px;
+	font-weight: bold;
+	color: #333;
+}
+
+.form-section {
+	background: #fff;
+	border-radius: 12px;
+	padding: 20px;
+	margin-bottom: 20px;
+}
+
+.form-item {
+	margin-bottom: 20px;
+}
+
+.label {
+	font-size: 15px;
+	color: #333;
+	margin-bottom: 10px;
+	display: block;
+	font-weight: 500;
+}
+
+.input, .textarea {
+	width: 100%;
+	padding: 12px;
+	border: 1px solid #e0e0e0;
+	border-radius: 8px;
+	font-size: 14px;
+	color: #333;
+	background: #fff;
+}
+
+.textarea {
+	min-height: 80px;
+}
+
+.picker {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 12px;
+	border: 1px solid #e0e0e0;
+	border-radius: 8px;
+	background: #fff;
+}
+
+.picker-arrow {
+	color: #999;
+	font-size: 16px;
+}
+
+.events-section {
+	background: #fff;
+	border-radius: 12px;
+	padding: 20px;
+}
+
+.section-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 15px;
+}
+
+.section-title {
+	font-size: 18px;
+	font-weight: bold;
+	color: #333;
+}
+
+.add-event-btn {
+	padding: 6px 14px;
+	background: #409eff;
+	color: #fff;
+	border-radius: 16px;
+	font-size: 13px;
+	border: none;
+}
+
+.events-list {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.event-item {
+	display: flex;
+	align-items: center;
+	padding: 12px;
+	background: #f8f9fa;
+	border-radius: 8px;
+}
+
+.event-time {
+	font-size: 16px;
+	font-weight: bold;
+	color: #409eff;
+	width: 40px;
+	flex-shrink: 0;
+}
+
+.event-content {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.event-type-badge {
+	padding: 4px 8px;
+	border-radius: 4px;
+	font-size: 12px;
+	font-weight: 500;
+}
+
+.event-type-badge.goal {
+	background: #e8f5e9;
+	color: #2e7d32;
+}
+
+.event-type-badge.foul {
+	background: #fff3e0;
+	color: #e65100;
+}
+
+.event-type-badge.yellow_card {
+	background: #fff9c4;
+	color: #f57f17;
+}
+
+.event-type-badge.red_card {
+	background: #ffebee;
+	color: #c62828;
+}
+
+.event-desc {
+	font-size: 14px;
+	color: #333;
+}
+
+.delete-event {
+	font-size: 14px;
+	color: #e54d42;
+	margin-left: 10px;
+}
+
+.empty-state {
+	text-align: center;
+	padding: 40px;
+	color: #999;
+}
+
+/* 弹窗样式 */
+.modal-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+}
+
+.modal-content {
+	background: #fff;
+	border-radius: 12px;
+	width: 90%;
+	max-width: 500px;
+	max-height: 80vh;
+	overflow-y: auto;
+}
+
+.modal-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 20px;
+	border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-title {
+	font-size: 18px;
+	font-weight: bold;
+	color: #333;
+}
+
+.modal-close {
+	font-size: 24px;
+	color: #999;
+}
+
+.modal-body {
+	padding: 20px;
+}
+
+.modal-footer {
+	display: flex;
+	gap: 10px;
+	padding: 20px;
+	border-top: 1px solid #e0e0e0;
+}
+
+.cancel-btn, .confirm-btn {
+	flex: 1;
+	padding: 12px;
+	border-radius: 8px;
+	font-size: 15px;
+	border: none;
+}
+
+.cancel-btn {
+	background: #f5f5f5;
+	color: #666;
+}
+
+.confirm-btn {
+	background: #409eff;
+	color: #fff;
+}
+</style>
+

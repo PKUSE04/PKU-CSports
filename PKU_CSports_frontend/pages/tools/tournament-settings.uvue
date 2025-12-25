@@ -1,0 +1,349 @@
+<template>
+	<view class="container">
+		<view class="header">
+			<text class="title">赛制设置</text>
+		</view>
+
+		<view class="form-section">
+			<view class="form-item">
+				<text class="label">赛事名称 *</text>
+				<input v-model="formData.name" placeholder="如：2024新生杯" class="input" />
+			</view>
+
+			<view class="form-item">
+				<text class="label">赛事类型 *</text>
+				<picker mode="selector" :range="typeOptions" :value="typeIndex" @change="onTypeChange">
+					<view class="picker">
+						<text>{{ formData.type || '请选择' }}</text>
+						<text class="picker-arrow">></text>
+					</view>
+				</picker>
+			</view>
+
+			<view class="form-item">
+				<text class="label">年份 *</text>
+				<input v-model.number="formData.year" type="number" placeholder="如：2024" class="input" />
+			</view>
+
+			<view class="form-item">
+				<text class="label">性别分组 *</text>
+				<picker mode="selector" :range="genderOptions" :value="genderIndex" @change="onGenderChange">
+					<view class="picker">
+						<text>{{ formData.gender || '请选择' }}</text>
+						<text class="picker-arrow">></text>
+					</view>
+				</picker>
+			</view>
+
+			<view class="form-item">
+				<text class="label">当前阶段 *</text>
+				<picker mode="selector" :range="stageOptions" :value="stageIndex" @change="onStageChange">
+					<view class="picker">
+						<text>{{ formData.stage || '请选择' }}</text>
+						<text class="picker-arrow">></text>
+					</view>
+				</picker>
+			</view>
+
+			<view class="form-item">
+				<text class="label">分组设置</text>
+				<view class="groups-section">
+					<view v-for="(group, gIdx) in formData.groups" :key="gIdx" class="group-item">
+						<view class="group-header">
+							<text class="group-name">{{ group.group }}组</text>
+							<text class="delete-btn" @click="removeGroup(gIdx)">删除</text>
+						</view>
+						<view class="teams-list">
+							<text v-for="(teamId, tIdx) in group.teams" :key="tIdx" class="team-tag">
+								{{ getTeamName(teamId) }}
+								<text class="remove-team" @click="removeTeam(gIdx, tIdx)">×</text>
+							</text>
+							<picker 
+								mode="selector" 
+								:range="availableTeams" 
+								range-key="name" 
+								:value="0"
+								@change="(e) => onTeamSelected(e, gIdx)"
+							>
+								<view class="add-team-btn">+ 添加球队</view>
+							</picker>
+						</view>
+					</view>
+					<button class="add-group-btn" @click="addGroup">+ 添加分组</button>
+				</view>
+			</view>
+		</view>
+
+		<button class="submit-btn" @click="submit" :loading="submitting">保存</button>
+	</view>
+</template>
+
+<script>
+import { get, post } from '@/utils/request.js'
+
+export default {
+	data() {
+		return {
+			typeOptions: ['新生杯', '北大杯'],
+			typeIndex: 0,
+			genderOptions: ['联赛组', '女子组'],
+			genderIndex: 0,
+			stageOptions: ['小组赛', '淘汰赛'],
+			stageIndex: 0,
+			formData: {
+				name: '',
+				type: '新生杯',
+				year: new Date().getFullYear(),
+				gender: '联赛组',
+				stage: '小组赛',
+				groups: []
+			},
+			teams: [],
+			submitting: false
+		}
+	},
+	computed: {
+		availableTeams() {
+			// 返回未分配到任何组的球队
+			const assignedTeamIds = this.formData.groups.flatMap(g => g.teams)
+			return this.teams.filter(t => !assignedTeamIds.includes(t.id))
+		}
+	},
+	onLoad() {
+		this.fetchTeams()
+	},
+	methods: {
+		async fetchTeams() {
+			try {
+				const res = await get('/api/teams')
+				if (res.data && res.data.success) {
+					this.teams = res.data.data || []
+				}
+			} catch (e) {
+				console.error('fetch teams error', e)
+			}
+		},
+		onTypeChange(e) {
+			this.typeIndex = parseInt(e.detail.value)
+			this.formData.type = this.typeOptions[this.typeIndex]
+		},
+		onGenderChange(e) {
+			this.genderIndex = parseInt(e.detail.value)
+			this.formData.gender = this.genderOptions[this.genderIndex]
+		},
+		onStageChange(e) {
+			this.stageIndex = parseInt(e.detail.value)
+			this.formData.stage = this.stageOptions[this.stageIndex]
+		},
+		addGroup() {
+			const groupLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+			const nextLetter = groupLetters[this.formData.groups.length]
+			this.formData.groups.push({
+				group: nextLetter,
+				teams: []
+			})
+		},
+		removeGroup(index) {
+			this.formData.groups.splice(index, 1)
+		},
+		onTeamSelected(e, groupIndex) {
+			const teamIndex = parseInt(e.detail.value)
+			const team = this.availableTeams[teamIndex]
+			if (team && groupIndex >= 0) {
+				// 检查是否已添加
+				if (!this.formData.groups[groupIndex].teams.includes(team.id)) {
+					this.formData.groups[groupIndex].teams.push(team.id)
+				}
+			}
+		},
+		removeTeam(groupIndex, teamIndex) {
+			this.formData.groups[groupIndex].teams.splice(teamIndex, 1)
+		},
+		getTeamName(teamId) {
+			const team = this.teams.find(t => t.id === teamId)
+			return team ? team.name : `球队${teamId}`
+		},
+		async submit() {
+			if (!this.formData.name || !this.formData.type || !this.formData.year || !this.formData.gender) {
+				uni.showToast({ title: '请填写完整信息', icon: 'none' })
+				return
+			}
+
+			this.submitting = true
+			try {
+				const res = await post('/api/tournaments', this.formData)
+				if (res.data && res.data.success) {
+					uni.showToast({ title: '保存成功', icon: 'success' })
+					setTimeout(() => {
+						uni.navigateBack()
+					}, 1000)
+				} else {
+					uni.showToast({ title: res.data?.message || '保存失败', icon: 'none' })
+				}
+			} catch (e) {
+				console.error('submit error', e)
+				uni.showToast({ title: '保存失败', icon: 'none' })
+			} finally {
+				this.submitting = false
+			}
+		}
+	}
+}
+</script>
+
+<style>
+.container {
+	background-color: #f8f8f8;
+	min-height: 100vh;
+	padding: 20px;
+	position: relative;
+	z-index: 0;
+}
+
+.header {
+	margin-bottom: 20px;
+}
+
+.title {
+	font-size: 24px;
+	font-weight: bold;
+	color: #333;
+}
+
+.form-section {
+	background: #fff;
+	border-radius: 12px;
+	padding: 20px;
+	margin-bottom: 20px;
+}
+
+.form-item {
+	margin-bottom: 20px;
+}
+
+.form-item:last-child {
+	margin-bottom: 0;
+}
+
+.label {
+	font-size: 15px;
+	color: #333;
+	margin-bottom: 10px;
+	display: block;
+	font-weight: 500;
+}
+
+.input {
+	width: 100%;
+	padding: 12px;
+	border: 1px solid #e0e0e0;
+	border-radius: 8px;
+	font-size: 14px;
+	color: #333;
+	background: #fff;
+}
+
+.picker {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 12px;
+	border: 1px solid #e0e0e0;
+	border-radius: 8px;
+	background: #fff;
+	position: relative;
+	z-index: 1;
+}
+
+.picker-arrow {
+	color: #999;
+	font-size: 16px;
+}
+
+.groups-section {
+	margin-top: 10px;
+}
+
+.group-item {
+	background: #f8f9fa;
+	border-radius: 8px;
+	padding: 12px;
+	margin-bottom: 12px;
+}
+
+.group-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 10px;
+}
+
+.group-name {
+	font-size: 15px;
+	font-weight: bold;
+	color: #333;
+}
+
+.delete-btn {
+	font-size: 13px;
+	color: #e54d42;
+}
+
+.teams-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.team-tag {
+	display: inline-flex;
+	align-items: center;
+	padding: 6px 12px;
+	background: #fff;
+	border-radius: 16px;
+	font-size: 13px;
+	color: #333;
+	border: 1px solid #e0e0e0;
+}
+
+.remove-team {
+	margin-left: 6px;
+	color: #e54d42;
+	font-size: 18px;
+	font-weight: bold;
+}
+
+.add-team-btn {
+	display: inline-block;
+	padding: 6px 12px;
+	background: #409eff;
+	color: #fff;
+	border-radius: 16px;
+	font-size: 13px;
+	border: none;
+	cursor: pointer;
+}
+
+.add-group-btn {
+	width: 100%;
+	padding: 10px;
+	background: #f0f6ff;
+	color: #409eff;
+	border-radius: 8px;
+	font-size: 14px;
+	border: 1px solid #409eff;
+	margin-top: 10px;
+}
+
+.submit-btn {
+	width: 100%;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: #fff;
+	padding: 14px;
+	border-radius: 8px;
+	font-size: 16px;
+	font-weight: bold;
+	border: none;
+}
+</style>
+

@@ -170,3 +170,4 @@ psql -U postgres -d csports_db -f db/migrate_add_media.sql
 ISC
 
 
+

@@ -33,6 +33,24 @@
 			</view>
 		</view>
 
+		<!-- 历史战绩 -->
+		<view class="section" v-if="teamInfo && teamInfo.history_matches && teamInfo.history_matches.length > 0">
+			<view class="section-title">
+				<text class="title-text">历史战绩</text>
+			</view>
+			<view class="match-list">
+				<view v-for="(match, index) in teamInfo.history_matches" :key="index" class="match-item" @click="goToMatchDetail(match.id)">
+					<text class="match-time">{{ formatDateTime(match.date_time) }}</text>
+					<view class="match-info">
+						<text class="team-home">{{ match.home_team_name }}</text>
+						<text class="score">{{ formatScore(match) }}</text>
+						<text class="team-away">{{ match.away_team_name }}</text>
+					</view>
+					<text class="match-status">{{ match.status }}</text>
+				</view>
+			</view>
+		</view>
+
 		<!-- 主队动态 -->
 		<view class="section" v-if="teamInfo && teamInfo.recent_posts && teamInfo.recent_posts.length > 0">
 			<view class="section-title">
